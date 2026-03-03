@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy >=2.3", 
-    "RawHandler ~=0.0.2",
+    "RawHandler ~=0.2.0",
     "colour_demosaicing ~=0.2.6",
     "blended_tiling >=0.0.1.dev7",
     "requests ~=2.32",
