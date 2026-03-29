@@ -26,7 +26,8 @@ dependencies = [
     "platformdirs ~=4.5",
     "tqdm ~=4.67",
     "cryptography ~=46.0",
-    "tifffile"
+    "tifffile",
+    "onnxruntime"
 ]
 
 
@@ -44,3 +45,23 @@ include = ["RawForge*"]
 
 [project.scripts]
 rawforge = "RawForge.main:main"
+
+
+python3.12 -m venv test_tiffile
+. test_tiffile/bin/activate
+git clone -b feature_save_with_tifffile https://github.com/rymuelle/RawForge.git
+pip install RawForge/.
+rawforge TreeNetDenoiseSuperLight test.CR2 test.dng --cfa
+
+ 1030  ls
+ 1031  ls *.cr2
+ 1032  ls -lrt
+ 1033  rawforge -h
+ 1034  rawforge TreeNetDenoiseSuperLight test.CR2 test.dng --cfa
+ 1035  ls *.CR2
+ 1036  cp IMG_1238.CR2 test.CR2
+ 1037  rawforge TreeNetDenoiseSuperLight test.CR2 test.dng --cfa
+ 1038  deactivate
+ 1039  ls
+ 1040  rm -rf RawForge
+ 1041  rm -rf test_tiffile/
