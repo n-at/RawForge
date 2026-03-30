@@ -52,4 +52,11 @@ MODEL_REGISTRY = {
         "conditioning": "false",
         "batch_size": 1, 
     }, 
+    "RestormerXTrans": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/xtrans_v1.0.0/restormer.pt",
+        "filename": "restormer.pt",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
 }
