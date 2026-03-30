@@ -6,7 +6,7 @@ from tqdm import tqdm
 import rawpy
 
 class InferenceWorker():
-    def __init__(self, model, model_params, device, rh, conditioning, dims, tile_size=256, tile_overlap=0.25, batch_size=2, disable_tqdm=False):
+    def __init__(self, model, model_params, device, rh, conditioning, dims, tile_size=512, tile_overlap=0.25, batch_size=2, disable_tqdm=False):
         super().__init__()
         self.model = model
         self.model_params = model_params
@@ -14,10 +14,13 @@ class InferenceWorker():
         self.rh = rh
         self.conditioning = conditioning
         self.dims = dims
-        # Quick and dirty hack to force to be even
         self.tile_size = tile_size
+        if 'tile_size' in model_params:
+            self.tile_size =  model_params['tile_size']
         self.tile_overlap = tile_overlap
         self.batch_size = batch_size
+        if 'batch_size' in model_params:
+            self.batch_size = model_params['batch_size']
         self._is_cancelled = False
         self.disable_tqdm = disable_tqdm
 
@@ -26,10 +29,6 @@ class InferenceWorker():
 
     def _tile_process(self):
         # Prepare Data
-        # image_RGGB = self.rh.as_rggb(dims=self.dims, colorspace='lin_rec2020')
-        # self.rh.compute_linear()
-
-        # image_RGB = self.rh.camera_linear
         image_RGB = self.rh.rawpy_object.postprocess(
                     user_wb=[1, 1, 1, 1],
                     output_color=rawpy.ColorSpace.raw,
@@ -42,9 +41,9 @@ class InferenceWorker():
                     output_bps=16,
                     no_auto_scale=True,
                 ) / self.rh.rawpy_object.white_level
+
         image_RGB = image_RGB.transpose(2, 0, 1)
 
-        # tensor_image = torch.from_numpy(image_RGGB).unsqueeze(0).contiguous()
         tensor_RGB = torch.from_numpy(image_RGB).unsqueeze(0).contiguous()
 
         full_size = [image_RGB.shape[1], image_RGB.shape[2]]
@@ -52,7 +51,6 @@ class InferenceWorker():
         overlap = [self.tile_overlap, self.tile_overlap]
 
         # Tiling Setup
-        # tiling_module = TilingModule(tile_size=tile_size, tile_overlap=overlap, base_size=full_size)
         tiling_module_rgb = TilingModule(tile_size=[s for s in tile_size], tile_overlap=overlap, base_size=[s for s in full_size])
 
         tiles_rgb = tiling_module_rgb.split_into_tiles(tensor_RGB).float().to(self.device)
@@ -82,18 +80,17 @@ class InferenceWorker():
                     B = batch_rgb.shape[0]
                     # Expand conditioning to match batch size
                     curr_cond = cond_tensor.expand(B, -1)
-                    
                     output = self.model(batch_rgb, curr_cond*0)
-
-                    # Output processing
-                    if "affine" in self.model_params:
-                        output, _, _ = match_colors_linear(output, batch_rgb)
                     processed_batches.append(output.cpu())
                     
         # Rebuild
         tiles_out = torch.cat(processed_batches, dim=0)
-        stitched = tiling_module_rgb.rebuild_with_masks(tiles_out).detach().cpu().numpy()[0]
+        stitched = tiling_module_rgb.rebuild_with_masks(tiles_out).detach().cpu()
 
+        if "affine" in self.model_params:
+            stitched, _, _ = match_colors_linear(stitched, tensor_RGB)
+
+        stitched = stitched.numpy()[0]
         torch.cuda.empty_cache()
 
         return image_RGB.transpose(1, 2, 0), stitched.transpose(1, 2, 0)
