@@ -25,7 +25,7 @@ dependencies = [
     "requests ~=2.32",
     "platformdirs ~=4.5",
     "tqdm ~=4.67",
-    "cryptography ~=46.0",
+    "cryptography >=46.0",
     "tifffile"
 ]
 
