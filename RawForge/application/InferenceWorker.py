@@ -3,7 +3,6 @@ from blended_tiling import TilingModule
 from colour_demosaicing import demosaicing_CFA_Bayer_Malvar2004
 from RawForge.application.postprocessing import match_colors_linear
 from tqdm import tqdm
-import rawpy
 
 class InferenceWorker():
     def __init__(self, model, model_params, device, rh, conditioning, dims, tile_size=256, tile_overlap=0.25, batch_size=2, disable_tqdm=False):
@@ -26,37 +25,24 @@ class InferenceWorker():
 
     def _tile_process(self):
         # Prepare Data
-        # image_RGGB = self.rh.as_rggb(dims=self.dims, colorspace='lin_rec2020')
-        # self.rh.compute_linear()
-
-        # image_RGB = self.rh.camera_linear
-        image_RGB = self.rh.rawpy_object.postprocess(
-                    user_wb=[1, 1, 1, 1],
-                    output_color=rawpy.ColorSpace.raw,
-                    demosaic_algorithm= rawpy.DemosaicAlgorithm(3),
-                    no_auto_bright=True,
-                    use_camera_wb=False,
-                    use_auto_wb=False,
-                    gamma=(1, 1),
-                    user_flip=0,
-                    output_bps=16,
-                    no_auto_scale=True,
-                ) / self.rh.rawpy_object.white_level
-        image_RGB = image_RGB.transpose(2, 0, 1)
-
-        # tensor_image = torch.from_numpy(image_RGGB).unsqueeze(0).contiguous()
+        image_RGGB = self.rh.as_rggb(dims=self.dims, colorspace='lin_rec2020')
+        image_RGB = self.rh.as_rgb(dims=self.dims, demosaicing_func=demosaicing_CFA_Bayer_Malvar2004, colorspace='lin_rec2020', clip=True)
+        tensor_image = torch.from_numpy(image_RGGB).unsqueeze(0).contiguous()
         tensor_RGB = torch.from_numpy(image_RGB).unsqueeze(0).contiguous()
 
-        full_size = [image_RGB.shape[1], image_RGB.shape[2]]
-        tile_size = [self.tile_size, self.tile_size]
+        full_size = [image_RGGB.shape[1], image_RGGB.shape[2]]
+        tile_size = [self.tile_size // 2, self.tile_size // 2]
         overlap = [self.tile_overlap, self.tile_overlap]
 
         # Tiling Setup
-        # tiling_module = TilingModule(tile_size=tile_size, tile_overlap=overlap, base_size=full_size)
-        tiling_module_rgb = TilingModule(tile_size=[s for s in tile_size], tile_overlap=overlap, base_size=[s for s in full_size])
+        tiling_module = TilingModule(tile_size=tile_size, tile_overlap=overlap, base_size=full_size)
+        tiling_module_rgb = TilingModule(tile_size=[s*2 for s in tile_size], tile_overlap=overlap, base_size=[s*2 for s in full_size])
+        tiling_module_rebuild = TilingModule(tile_size=[s*2 for s in tile_size], tile_overlap=overlap, base_size=[s*2 for s in full_size])
 
+        tiles = tiling_module.split_into_tiles(tensor_image).float().to(self.device)
         tiles_rgb = tiling_module_rgb.split_into_tiles(tensor_RGB).float().to(self.device)
         
+        batches = torch.split(tiles, self.batch_size)
         batches_rgb = torch.split(tiles_rgb, self.batch_size)
 
         # Conditioning Setup
@@ -76,14 +62,14 @@ class InferenceWorker():
         # Inference Loop
         with torch.no_grad():
             with torch.autocast(device_type=self.device.type, dtype=autocast_dtype):
-                for i, (batch_rgb) in tqdm(enumerate(batches_rgb), disable=self.disable_tqdm):
+                for i, (batch, batch_rgb) in tqdm(enumerate(zip(batches, batches_rgb)), disable=self.disable_tqdm):
                     if self._is_cancelled: return None, None
                     
-                    B = batch_rgb.shape[0]
+                    B = batch.shape[0]
                     # Expand conditioning to match batch size
                     curr_cond = cond_tensor.expand(B, -1)
                     
-                    output = self.model(batch_rgb, curr_cond*0)
+                    output = self.model(batch_rgb, curr_cond)
 
                     # Output processing
                     if "affine" in self.model_params:
@@ -92,7 +78,7 @@ class InferenceWorker():
                     
         # Rebuild
         tiles_out = torch.cat(processed_batches, dim=0)
-        stitched = tiling_module_rgb.rebuild_with_masks(tiles_out).detach().cpu().numpy()[0]
+        stitched = tiling_module_rebuild.rebuild_with_masks(tiles_out).detach().cpu().numpy()[0]
 
         torch.cuda.empty_cache()
 
