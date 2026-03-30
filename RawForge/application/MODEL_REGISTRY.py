@@ -38,5 +38,18 @@ MODEL_REGISTRY = {
         "backend": "rawpy",
         "conditioning": "false",
     },
-    
+    "XFormerXTrans": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/xtrans_v1.0.0/xformer.pt",
+        "filename": "xformer.pt",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
+    "XFormerXTrans352": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/xtrans_v1.0.0/xformer_352.pt",
+        "filename": "xformer_352.pt",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
 }
