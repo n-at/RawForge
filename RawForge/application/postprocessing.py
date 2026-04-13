@@ -77,11 +77,11 @@ def postprocess(img, denoised, lumi_blend=0, chroma_blend=0, eps=1e-6,
     output = (1-lumi_blend) * denoised + lumi * (lumi_blend) + chroma_blend * chroma
 
     if clip_highlights:
-        output = clip_highlights(img, output)
-        
+        output = clip_highlights_func(img, output)
+
     return output
 
-def clip_highlights(img, denoised):
+def clip_highlights_func(img, denoised):
    mask = img == 1
    denoised[mask] = 1
    return denoised
