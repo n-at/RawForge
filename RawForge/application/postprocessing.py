@@ -65,7 +65,8 @@ def scaled_dot_product(x1, x2, eps=1e-6):
     return dot/(x1_mag+x2_mag+eps)
 
 
-def postprocess(img, denoised, lumi_blend=0, chroma_blend=0, eps=1e-6):
+def postprocess(img, denoised, lumi_blend=0, chroma_blend=0, eps=1e-6,
+                clip_highlights=False):
     # Suggested by Jakob Andrén
     dot = (img * denoised).sum(axis=2, keepdims=True)
     img_mag = (img * img).sum(axis=2, keepdims=True) ** .5
@@ -75,4 +76,12 @@ def postprocess(img, denoised, lumi_blend=0, chroma_blend=0, eps=1e-6):
     chroma = img - lumi 
     output = (1-lumi_blend) * denoised + lumi * (lumi_blend) + chroma_blend * chroma
 
+    if clip_highlights:
+        output = clip_highlights_func(img, output)
+
     return output
+
+def clip_highlights_func(img, denoised):
+   mask = img == 1
+   denoised[mask] = 1
+   return denoised

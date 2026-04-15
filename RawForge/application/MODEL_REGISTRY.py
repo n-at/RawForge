@@ -25,4 +25,36 @@ MODEL_REGISTRY = {
         "filename": "Deblur_deep_24.pt",
         "affine": True,
     },
+    "test_run_baseline.pt": {
+        "url": None,
+        "filename": "test_run_baseline.pt",
+        "affine": True,
+    },
+    "TreeNetDenoiseXTrans": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/xtrans_v1.0.0/xtrans_fixed_exposure_no_conditioning_400.pt",
+        "filename": "xtrans_fixed_exposure_no_conditioning_400.pt",
+        "backend": "rawpy",
+        "conditioning": "false",
+    },
+    "XFormerXTrans": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/xtrans_v1.0.0/xformer.pt",
+        "filename": "xformer.pt",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
+    "XFormerXTrans352": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/xtrans_v1.0.0/xformer_352.pt",
+        "filename": "xformer_352.pt",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
+    "RestormerXTrans": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/xtrans_v1.0.0/restormer.pt",
+        "filename": "restormer.pt",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
 }
