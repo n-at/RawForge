@@ -11,12 +11,10 @@ MODEL_REGISTRY = {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/ShadowWeightedL1_super_light.pt",
         "filename": "ShadowWeightedL1_super_light.pt"
     },
-
     "TreeNetDenoiseHeavy": {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/ShadowWeightedL1_24_deep_500.pt",
         "filename": "ShadowWeightedL1_24_deep_500.pt"
     },
-
     "Deblur": {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/realblur_gamma_140.pt",
         "filename": "realblur_gamma_140.pt",
