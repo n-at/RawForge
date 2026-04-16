@@ -10,7 +10,7 @@ def main():
     parser.add_argument('model', type=str, help='The name of the model to use.')
     parser.add_argument('in_file', type=str, help='The name of the file to open.')
     parser.add_argument('out_file', type=str, help='The name of the file to save.')
-    parser.add_argument('--conditioning', type=str, help='Conditioning array to feed model.')
+    parser.add_argument('--conditioning', type=str, help='Conditioning array to feed model. Input string of numbers like so: 1,2,3')
     parser.add_argument('--dims', type=int, nargs=4, metavar=("x0", "x1", "y0", "y1"), help='Optional crop dimensions.')
 
     parser.add_argument('--cfa', action='store_true', help='Save the image as a CFA image (default: False).')
@@ -42,9 +42,12 @@ def main():
 
     if not args.conditioning:
         conditioning  = [iso, 0]
+    else: 
+        conditioning = [int(x) for x in args.conditioning.split(',')]
 
     if args.device:
         handler.set_device(args.device)
+
 
     inference_kwargs = {"disable_tqdm": args.disable_tqdm,
                         "tile_size": args.tile_size}
