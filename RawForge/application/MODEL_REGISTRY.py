@@ -1,19 +1,23 @@
 MODEL_REGISTRY = {
     "TreeNetDenoise": {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/ShadowWeightedL1.pt",
-        "filename": "ShadowWeightedL1.pt"
+        "filename": "ShadowWeightedL1.pt",
+        "max_iso": 65535,
     },
     "TreeNetDenoiseLight": {
         "url": "    https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/ShadowWeightedL1_light.pt",
-        "filename": "ShadowWeightedL1_light.pt"
+        "filename": "ShadowWeightedL1_light.pt",
+        "max_iso": 65535,
     },
     "TreeNetDenoiseSuperLight": {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/ShadowWeightedL1_super_light.pt",
-        "filename": "ShadowWeightedL1_super_light.pt"
+        "filename": "ShadowWeightedL1_super_light.pt",
+        "max_iso": 65535,
     },
     "TreeNetDenoiseHeavy": {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/ShadowWeightedL1_24_deep_500.pt",
-        "filename": "ShadowWeightedL1_24_deep_500.pt"
+        "filename": "ShadowWeightedL1_24_deep_500.pt",
+        "max_iso": 65535,
     },
     "Deblur": {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/realblur_gamma_140.pt",
@@ -23,11 +27,6 @@ MODEL_REGISTRY = {
     "DeepSharpen": {
         "url": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/Deblur_deep_24.pt",
         "filename": "Deblur_deep_24.pt",
-        "affine": True,
-    },
-    "test_run_baseline.pt": {
-        "url": None,
-        "filename": "test_run_baseline.pt",
         "affine": True,
     },
     "TreeNetDenoiseXTrans": {
