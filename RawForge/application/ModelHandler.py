@@ -113,6 +113,10 @@ class ModelHandler():
         if not self.model or not self.rh:
             print("Model or Image not loaded.")
             return
+        
+        # Some older models were trained with a lower max iso
+        if "max_iso" in self.model_params:
+            conditioning[0] = min(conditioning[0], self.model_params["max_iso"])
 
         if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
             worker = InferenceWorkerRawpy(self.model, self.model_params, self.device, self.rh, conditioning, dims, **inference_kwargs)
