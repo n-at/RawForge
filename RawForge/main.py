@@ -10,7 +10,7 @@ def main():
     parser.add_argument('model', type=str, help='The name of the model to use.')
     parser.add_argument('in_file', type=str, help='The name of the file to open.')
     parser.add_argument('out_file', type=str, help='The name of the file to save.')
-    parser.add_argument('--conditioning', type=str, help='Conditioning array to feed model.')
+    parser.add_argument('--conditioning', type=str, help='Conditioning array to feed model. Input string of numbers like so: 1,2,3')
     parser.add_argument('--dims', type=int, nargs=4, metavar=("x0", "x1", "y0", "y1"), help='Optional crop dimensions.')
 
     parser.add_argument('--cfa', action='store_true', help='Save the image as a CFA image (default: False).')
@@ -20,6 +20,7 @@ def main():
 
     parser.add_argument('--lumi', type=float, help='Lumi noise (0-1).', default=0)
     parser.add_argument('--chroma', type=float, help='Chroma noise (0-1).', default=0)
+    parser.add_argument('--clip_highlights', action='store_true', help='Do not run model on clipped highlights.')
 
     args = parser.parse_args()
 
@@ -41,15 +42,19 @@ def main():
 
     if not args.conditioning:
         conditioning  = [iso, 0]
+    else: 
+        conditioning = [int(x) for x in args.conditioning.split(',')]
 
     if args.device:
         handler.set_device(args.device)
+
 
     inference_kwargs = {"disable_tqdm": args.disable_tqdm,
                         "tile_size": args.tile_size}
     img, denoised_image = handler.run_inference(conditioning=conditioning, dims=args.dims, inference_kwargs=inference_kwargs)
 
-    output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6)
+    output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6,
+                         clip_highlights=args.clip_highlights)
     handler.handle_full_image(output, args.out_file, args.cfa)
 
 

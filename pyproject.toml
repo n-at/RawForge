@@ -1,6 +1,6 @@
 [project]
 name = "rawforge" 
-version = "0.0.1"
+version = "0.1.0"
 description = "A compute backend/CLI application for using machine learning models on raw images."
 authors = [
     { name = "Ryan Mueller"},
@@ -18,15 +18,15 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 dependencies = [
-    "numpy >=2.3", 
-    "RawHandler ~=0.0.2",
+    "numpy >=2.2", 
+    "RawHandler ~=0.2.0",
     "colour_demosaicing ~=0.2.6",
     "blended_tiling >=0.0.1.dev7",
     "requests ~=2.32",
     "platformdirs ~=4.5",
     "tqdm ~=4.67",
-    "cryptography ~=46.0",
-    "tifffile",
+    "cryptography >=46.0",
+    "tifffile"
 ]
 
 
@@ -51,23 +51,3 @@ include = ["RawForge*"]
 
 [project.scripts]
 rawforge = "RawForge.main:main"
-
-
-python3.12 -m venv test_tiffile
-. test_tiffile/bin/activate
-git clone -b feature_save_with_tifffile https://github.com/rymuelle/RawForge.git
-pip install RawForge/.
-rawforge TreeNetDenoiseSuperLight test.CR2 test.dng --cfa
-
- 1030  ls
- 1031  ls *.cr2
- 1032  ls -lrt
- 1033  rawforge -h
- 1034  rawforge TreeNetDenoiseSuperLight test.CR2 test.dng --cfa
- 1035  ls *.CR2
- 1036  cp IMG_1238.CR2 test.CR2
- 1037  rawforge TreeNetDenoiseSuperLight test.CR2 test.dng --cfa
- 1038  deactivate
- 1039  ls
- 1040  rm -rf RawForge
- 1041  rm -rf test_tiffile/

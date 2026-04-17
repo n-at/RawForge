@@ -8,11 +8,14 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
 from RawHandler.RawHandler import RawHandler
+from RawHandler.RawHandlerRawpy import RawHandlerRawpy
+
 from RawForge.application.dng_utils import convert_color_matrix, to_dng
 from RawForge.application.utils import can_use_gpu
 
 from RawForge.application.MODEL_REGISTRY import MODEL_REGISTRY
 from RawForge.application.InferenceWorker import InferenceWorker
+from RawForge.application.InferenceWorkerRawpy import InferenceWorkerRawpy
 
 key_string = '''-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA8iRGMPqFIFVF0TM/AbMI
@@ -59,11 +62,11 @@ class ModelHandler():
 
     def load_rh(self, path):
         """Loads the raw file handler"""
-        self.rh = RawHandler(path, colorspace=self.colorspace)
-        if 'EXIF ISOSpeedRatings' in self.rh.full_metadata:
-            self.iso = int(self.rh.full_metadata['EXIF ISOSpeedRatings'].values[0])
+        if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
+                    self.rh = RawHandlerRawpy(path)
         else:
-            self.iso = 100
+                    self.rh = RawHandler(path)
+        self.iso = self.rh.full_metadata.get_ISO()
         return self.iso
 
     def load_model(self, model_key):
@@ -110,8 +113,15 @@ class ModelHandler():
         if not self.model or not self.rh:
             print("Model or Image not loaded.")
             return
+        
+        # Some older models were trained with a lower max iso
+        if "max_iso" in self.model_params:
+            conditioning[0] = min(conditioning[0], self.model_params["max_iso"])
 
-        worker = InferenceWorker(self.model, self.model_params, self.device, self.rh, conditioning, dims, **inference_kwargs)
+        if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
+            worker = InferenceWorkerRawpy(self.model, self.model_params, self.device, self.rh, conditioning, dims, **inference_kwargs)
+        else:
+            worker = InferenceWorker(self.model, self.model_params, self.device, self.rh, conditioning, dims, **inference_kwargs)
         img, final_denoised =  worker.run()
 
         return img, final_denoised
@@ -172,17 +182,28 @@ class ModelHandler():
         
 
     def handle_full_image(self, denoised, filename, save_cfa):
-        
-        transform_matrix = np.linalg.inv(
-                self.rh.rgb_colorspace_transform(colorspace=self.colorspace)
-                )
+        # Compute CFA
+        if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
+            _, mask = self.rh.compute_mask_and_sparse(dims=(0, 99999, 0, 99999))
+            denoised = denoised.transpose(2, 0, 1)
+            denoised = denoised.clip(0, 1)
 
-        CCM = self.rh.rgb_colorspace_transform(colorspace='XYZ')
-        CCM = np.linalg.inv(CCM)
+            denoised = np.where(mask, denoised, 0)
+            denoised = denoised.sum(axis=0)
+            denoised = denoised * ( self.rh.core_metadata.white_level) + self.rh.core_metadata.black_level_per_channel[0]
+            self.rh.to_dng(filename, uint_img=denoised)
+        else:
+            transform_matrix = np.linalg.inv(
+                    self.rh.rgb_colorspace_transform(colorspace=self.colorspace)
+                    )
 
-        transformed = denoised @ transform_matrix.T
-        uint_img = np.clip(transformed * 2**16-1, 0, 2**16-1).astype(np.uint16)
-        ccm1 = convert_color_matrix(CCM)
-        to_dng(uint_img, self.rh, filename, ccm1, save_cfa=save_cfa, convert_to_cfa=True)
+            CCM = self.rh.rgb_colorspace_transform(colorspace='XYZ')
+            CCM = np.linalg.inv(CCM)
+
+            transformed = denoised @ transform_matrix.T
+            uint_img = np.clip(transformed * 2**16-1, 0, 2**16-1).astype(np.uint16)
+            ccm1 = convert_color_matrix(CCM)
+            to_dng(uint_img, self.rh, filename, ccm1, save_cfa=save_cfa, convert_to_cfa=True)
+
 
 
