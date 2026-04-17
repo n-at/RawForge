@@ -27,8 +27,14 @@ dependencies = [
     "tqdm ~=4.67",
     "cryptography ~=46.0",
     "tifffile",
-    "onnxruntime"
 ]
+
+
+[project.optional-dependencies]
+cpu = ["onnxruntime"]
+cuda = ["onnxruntime-gpu"]
+web = ["onnxruntime-web"]
+directml = ["onnxruntime-directml"]
 
 
 [project.urls]
