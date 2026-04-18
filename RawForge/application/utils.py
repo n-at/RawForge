@@ -1,10 +1,16 @@
-import torch
+import onnxruntime as ort
 
-def can_use_gpu():
-    if not torch.cuda.is_available():
-        return False
-    try:
-        x = torch.zeros(1, device="cuda")
-        return True
-    except Exception:
-        return False
+def get_best_providers():
+    available = ort.get_available_providers()
+    
+    # The "Hierarchy of Speed"
+    priority = [
+        "CUDAExecutionProvider",      # NVIDIA
+        "ROCMExecutionProvider",      # AMD (Direct)
+        "MIGraphXExecutionProvider",  # AMD (Optimized)
+        "CoreMLExecutionProvider",    # Apple Silicon
+        "DmlExecutionProvider",       # Windows (AMD/Intel/Generic GPU)
+        "CPUExecutionProvider"        # The fallback
+    ]
+    
+    return [p for p in priority if p in available]
