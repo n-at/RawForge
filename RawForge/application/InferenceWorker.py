@@ -1,5 +1,4 @@
-import torch
-from blended_tiling import TilingModule
+from blended_tiling_numpy import TilingModule
 from colour_demosaicing import demosaicing_CFA_Bayer_Malvar2004
 from RawForge.application.postprocessing import match_colors_linear
 from tqdm import tqdm

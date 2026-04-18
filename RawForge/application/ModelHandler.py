@@ -1,4 +1,5 @@
-import torch
+import onnxruntime as ort
+import os
 import numpy as np
 from pathlib import Path
 from platformdirs import user_data_dir
@@ -11,7 +12,7 @@ from RawHandler.RawHandler import RawHandler
 from RawHandler.RawHandlerRawpy import RawHandlerRawpy
 
 from RawForge.application.dng_utils import convert_color_matrix, to_dng
-from RawForge.application.utils import can_use_gpu
+from RawForge.application.utils import get_best_providers
 
 from RawForge.application.MODEL_REGISTRY import MODEL_REGISTRY
 from RawForge.application.InferenceWorker import InferenceWorker
@@ -45,15 +46,25 @@ class ModelHandler():
         self.iso = 100
         self.colorspace = 'lin_rec2020'
 
+        app_name = "RawForge"
+        self.data_dir = Path(user_data_dir(app_name))
+
+        #Cache compiled ONNX models
+        cache_path = Path(os.path.expanduser(f"{self.data_dir}/model_cache")).resolve()
+        print(cache_path)
+        os.makedirs(cache_path, exist_ok=True)
+        cache_path = '/Users/ryanmueller/Library/model_cache'
         # Manage devices
-        devices = {
-                   "cuda": can_use_gpu(),
-                   "mps": torch.backends.mps.is_available(),
-                   "cpu": lambda : True
-        }
-        self.devices = [d for d, is_available in devices.items() if is_available]
-        self.set_device(self.devices[0])
-        
+        self.providers =  get_best_providers(cache_path)
+        cache_dir = str(cache_path)
+        # self.providers = [
+        #     ('CoreMLExecutionProvider', {
+        #         'MLComputeUnits': 'ALL',
+        #         'ModelCacheDirectory': cache_dir, # This saves the compiled .mlmodelc here
+        #     }),
+            
+        #     'CPUExecutionProvider'
+        # ]
         self.filename = None
         self.start_time = None
         self.model_params = {}
@@ -74,12 +85,9 @@ class ModelHandler():
         if model_key not in MODEL_REGISTRY:
             print(f"Model {model_key} not found in registry.")
             return
-
         conf = MODEL_REGISTRY[model_key]
         self.model_params = conf
-        app_name = "RawForge"
-        data_dir = Path(user_data_dir(app_name))
-        model_path = data_dir / conf["filename"]
+        model_path = self.data_dir / conf["filename"]
 
         # Handle Download
         if not model_path.is_file():
@@ -97,16 +105,20 @@ class ModelHandler():
             # Verify model before load
             self._verify_model(model_path, model_path.with_suffix(f'{model_path.suffix}.sig'))
             
-            loaded = torch.jit.load(model_path, map_location='cpu')
-            self.model = loaded.eval().to(self.device)
+            session = ort.InferenceSession(
+               model_path, 
+               providers=self.providers, 
+            )
+            print("Loaded!")
+            self.model = session
         except Exception as e:
             print(f"Failed to load model: {e}")
 
-    def set_device(self, device):
-        self.device = torch.device(device)
-        if self.model:
-            self.model.to(self.device)
-        print(f"Using Device {self.device} from {device}")
+    # def set_device(self, device):
+    #     self.device = torch.device(device)
+    #     if self.model:
+    #         self.model.to(self.device)
+    #     print(f"Using Device {self.device} from {device}")
 
     def run_inference(self, conditioning, dims=None, inference_kwargs={}):
         """Starts the worker thread"""
@@ -119,9 +131,9 @@ class ModelHandler():
             conditioning[0] = min(conditioning[0], self.model_params["max_iso"])
 
         if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
-            worker = InferenceWorkerRawpy(self.model, self.model_params, self.device, self.rh, conditioning, dims, **inference_kwargs)
+            worker = InferenceWorkerRawpy(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
         else:
-            worker = InferenceWorker(self.model, self.model_params, self.device, self.rh, conditioning, dims, **inference_kwargs)
+            worker = InferenceWorker(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
         img, final_denoised =  worker.run()
 
         return img, final_denoised

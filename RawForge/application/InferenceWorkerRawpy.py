@@ -1,15 +1,15 @@
-import torch
-from blended_tiling import TilingModule
+import onnxruntime as ort
+import numpy as np
+from blended_tiling_numpy import TilingModule
 from RawForge.application.postprocessing import match_colors_linear
 from tqdm import tqdm
 import rawpy
 
 class InferenceWorkerRawpy():
-    def __init__(self, model, model_params, device, rh, conditioning, dims, tile_size=512, tile_overlap=0.25, batch_size=2, disable_tqdm=False):
+    def __init__(self, model, model_params, rh, conditioning, dims, tile_size=512, tile_overlap=0.25, batch_size=2, disable_tqdm=False):
         super().__init__()
         self.model = model
         self.model_params = model_params
-        self.device = device
         self.rh = rh
         self.conditioning = conditioning
         self.dims = dims
@@ -40,59 +40,56 @@ class InferenceWorkerRawpy():
                     output_bps=16,
                     no_auto_scale=True,
                 ) / self.rh.rawpy_object.white_level
+        image_RGB = np.expand_dims(image_RGB.transpose(2, 0, 1), axis=0).astype(np.float32)
+        # image_RGB = image_RGB[:, :, 0:512, 0:512]
+        print(self.dims)
 
-        image_RGB = image_RGB.transpose(2, 0, 1)
-
-        tensor_RGB = torch.from_numpy(image_RGB).unsqueeze(0).contiguous()
-
-        full_size = [image_RGB.shape[1], image_RGB.shape[2]]
+        full_size = [image_RGB.shape[2], image_RGB.shape[3]]
         tile_size = [self.tile_size, self.tile_size]
         overlap = [self.tile_overlap, self.tile_overlap]
 
         # Tiling Setup
         tiling_module_rgb = TilingModule(tile_size=[s for s in tile_size], tile_overlap=overlap, base_size=[s for s in full_size])
 
-        tiles_rgb = tiling_module_rgb.split_into_tiles(tensor_RGB).float().to(self.device)
+        tiles_rgb = tiling_module_rgb.split_into_tiles(image_RGB)
         
-        batches_rgb = torch.split(tiles_rgb, self.batch_size)
-
+        batches_rgb = [tiles_rgb[i : i + self.batch_size] 
+                        for i in range(0, len(tiles_rgb), self.batch_size)]
         # Conditioning Setup
-        cond_tensor = torch.as_tensor(self.conditioning, device=self.device).float().unsqueeze(0)
+        cond_tensor = np.array([self.conditioning])
         cond_tensor[:, 0] /= 6400
         cond_tensor[:, 1] = 0
         cond_tensor = cond_tensor[:, 0:1]
 
         processed_batches = []
         
-        # Determine Dtype
-        dtype_map = {'mps': torch.float16, 'cuda': torch.float16, 'cpu': torch.bfloat16}
-        autocast_dtype = dtype_map.get(self.device.type, torch.float32)
 
-        total_batches = len(batches_rgb)
-        
         # Inference Loop
-        with torch.no_grad():
-            with torch.autocast(device_type=self.device.type, dtype=autocast_dtype):
-                for i, (batch_rgb) in tqdm(enumerate(batches_rgb), disable=self.disable_tqdm):
-                    if self._is_cancelled: return None, None
-                    
-                    B = batch_rgb.shape[0]
-                    # Expand conditioning to match batch size
-                    curr_cond = cond_tensor.expand(B, -1)
-                    output = self.model(batch_rgb, curr_cond*0)
-                    processed_batches.append(output.cpu())
+        for i, (batch_rgb) in tqdm(enumerate(batches_rgb), disable=self.disable_tqdm):
+            if self._is_cancelled: return None, None
+            
+            B = batch_rgb.shape[0]
+            # Expand conditioning to match batch size
+            curr_cond = np.broadcast_to(cond_tensor, (B, cond_tensor.shape[-1]))
+            output = self.model.run(
+                ["output"], 
+                {
+                    "input": batch_rgb, 
+                }
+            )
+            processed_batches.append(output[0])
                     
         # Rebuild
-        tiles_out = torch.cat(processed_batches, dim=0)
-        stitched = tiling_module_rgb.rebuild_with_masks(tiles_out).detach().cpu()
+        tiles_out = np.concat(processed_batches, axis=0)
+        print(tiles_out.shape)
+        stitched = tiling_module_rgb.rebuild_with_masks(tiles_out)
 
         if "affine" in self.model_params:
-            stitched, _, _ = match_colors_linear(stitched, tensor_RGB)
+            stitched, _, _ = match_colors_linear(stitched, image_RGB)
 
-        stitched = stitched.numpy()[0]
-        torch.cuda.empty_cache()
-
-        return image_RGB.transpose(1, 2, 0), stitched.transpose(1, 2, 0)
+        stitched = stitched[0]
+        print(stitched.shape)
+        return image_RGB[0].transpose(1, 2, 0), stitched.transpose(1, 2, 0)
     
     def run(self):
         try:
