@@ -25,7 +25,8 @@ class InferenceWorkerRawpy():
 
     def cancel(self):
         self._is_cancelled = True
-
+    # def get_image():
+    #     image_RGB = self.rh.as_rgb(dims=self.dims, demosaicing_func=demosaicing_CFA_Bayer_Malvar2004, colorspace='lin_rec2020', clip=True)
     def _tile_process(self):
         # Prepare Data
         image_RGB = self.rh.rawpy_object.postprocess(
@@ -40,9 +41,7 @@ class InferenceWorkerRawpy():
                     output_bps=16,
                     no_auto_scale=True,
                 ) / self.rh.rawpy_object.white_level
-        image_RGB = np.expand_dims(image_RGB.transpose(2, 0, 1), axis=0).astype(np.float32)
-        # image_RGB = image_RGB[:, :, 0:512, 0:512]
-        print(self.dims)
+        image_RGB = np.expand_dims(image_RGB.transpose(2, 0, 1), axis=0).astype(np.float16)
 
         full_size = [image_RGB.shape[2], image_RGB.shape[3]]
         tile_size = [self.tile_size, self.tile_size]
@@ -63,25 +62,27 @@ class InferenceWorkerRawpy():
 
         processed_batches = []
         
-
         # Inference Loop
         for i, (batch_rgb) in tqdm(enumerate(batches_rgb), disable=self.disable_tqdm):
             if self._is_cancelled: return None, None
             
             B = batch_rgb.shape[0]
             # Expand conditioning to match batch size
-            curr_cond = np.broadcast_to(cond_tensor, (B, cond_tensor.shape[-1]))
-            output = self.model.run(
-                ["output"], 
-                {
-                    "input": batch_rgb, 
-                }
-            )
+            curr_cond = np.broadcast_to(cond_tensor, (B, cond_tensor.shape[-1])).astype(np.float16)
+
+            payload = {
+                "input": batch_rgb,
+                "cond": curr_cond
+            }
+            # Filter based on inputs
+            model_inputs = {i.name for i in self.model.get_inputs()}
+            filtered_inputs = {k: v for k, v in payload.items() if k in model_inputs}
+            output = self.model.run(["output"], filtered_inputs)
+            
             processed_batches.append(output[0])
                     
         # Rebuild
         tiles_out = np.concat(processed_batches, axis=0)
-        print(tiles_out.shape)
         stitched = tiling_module_rgb.rebuild_with_masks(tiles_out)
 
         if "affine" in self.model_params:
@@ -92,14 +93,14 @@ class InferenceWorkerRawpy():
         return image_RGB[0].transpose(1, 2, 0), stitched.transpose(1, 2, 0)
     
     def run(self):
-        try:
-            img, denoised_img = self._tile_process()
+        # try:
+        img, denoised_img = self._tile_process()
 
-            # Post-process blending
-            blend_alpha = self.conditioning[1] / 100
-            final_denoised = (denoised_img * (1 - blend_alpha)) + (img * blend_alpha)
+        # Post-process blending
+        blend_alpha = self.conditioning[1] / 100
+        final_denoised = (denoised_img * (1 - blend_alpha)) + (img * blend_alpha)
+        
+        return img, final_denoised
             
-            return img, final_denoised
-            
-        except Exception as e:
-            print(str(e))
+        # except Exception as e:
+        #     print(str(e))
