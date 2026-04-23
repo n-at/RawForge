@@ -101,9 +101,6 @@ class InferenceWorkerRawpy():
         tiles_out = np.concat(processed_batches, axis=0)
         stitched = tiling_module_rgb.rebuild_with_masks(tiles_out)
 
-        if "affine" in self.model_params:
-            stitched, _, _ = match_colors_linear(stitched, image_RGB)
-
         stitched = stitched[0]
         print(stitched.shape)
         return image_RGB[0].transpose(1, 2, 0), stitched.transpose(1, 2, 0)

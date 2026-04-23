@@ -26,13 +26,11 @@ MODEL_REGISTRY = {
     "Deblur": {
         "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/realblur_gamma_140.onnx",
         "filename": "realblur_gamma_140.onnx",
-        "affine": True,
         "backend": "Malvar2004",
     },
     "DeepSharpen": {
         "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/Deblur_deep_24.onnx",
         "filename": "Deblur_deep_24.onnx",
-        "affine": True,
         "backend": "Malvar2004",
     },
     "TreeNetDenoiseXTrans": {

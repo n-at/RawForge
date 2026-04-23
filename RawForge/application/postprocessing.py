@@ -1,9 +1,11 @@
 import numpy as np
+from RawForge.application.helpers.censored_fit import censored_linear_fit_twosided
 
 def match_colors_linear(
     src: np.ndarray, 
     tgt: np.ndarray, 
-    sample_fraction: float = 0.05
+    sample_fraction: float = 0.05,
+    censored_fit: bool = True
 ):
     """
     Fit per-channel affine color transforms using NumPy.
@@ -44,6 +46,10 @@ def match_colors_linear(
     bias_ = bias[:, :, np.newaxis, np.newaxis]
     transformed = src * scale_ + bias_
 
+    if censored_fit:
+        a, b, sigma = censored_linear_fit_twosided(tgt_s.astype(np.float32()), src_s.astype(np.float32()))
+        transformed =  a + b * transformed
+
     return transformed, scale, bias
 
 
@@ -56,7 +62,14 @@ def scaled_dot_product(x1, x2, eps=1e-6):
 
 
 def postprocess(img, denoised, lumi_blend=0, chroma_blend=0, eps=1e-6,
-                clip_highlights=False):
+                clip_highlights=False, affine=False):
+    
+    if affine:
+        _denoised = np.expand_dims(denoised.transpose(2, 0, 1), axis=0)
+        _img = np.expand_dims(img.transpose(2, 0, 1), axis=0)
+        _denoised, _, _ = match_colors_linear(_denoised, _img)
+        denoised = _denoised[0].transpose(1, 2, 0)
+
     dot = (img * denoised).sum(axis=2, keepdims=True)
     denoised_mag = (denoised * denoised).sum(axis=2, keepdims=True) ** .5
     
@@ -67,6 +80,8 @@ def postprocess(img, denoised, lumi_blend=0, chroma_blend=0, eps=1e-6,
 
     if clip_highlights:
         output = clip_highlights_func(img, output)
+
+
 
     return output
 

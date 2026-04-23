@@ -22,6 +22,7 @@ def main():
     parser.add_argument('--lumi', type=float, help='Lumi noise (0-1).', default=0)
     parser.add_argument('--chroma', type=float, help='Chroma noise (0-1).', default=0)
     parser.add_argument('--clip_highlights', action='store_true', help='Do not run model on clipped highlights.')
+    parser.add_argument('--affine', action='store_true', help='Affine fit the model to the input.')
 
     args = parser.parse_args()
 
@@ -56,7 +57,7 @@ def main():
     img, denoised_image = handler.run_inference(conditioning=conditioning, dims=args.dims, inference_kwargs=inference_kwargs)
 
     output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6,
-                         clip_highlights=args.clip_highlights)
+                         clip_highlights=args.clip_highlights, affine=args.affine)
     handler.handle_full_image(output, args.out_file, args.cfa, dims=args.dims)
 
 
