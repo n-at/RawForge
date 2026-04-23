@@ -16,7 +16,6 @@ from RawForge.application.utils import get_best_providers
 
 from RawForge.application.MODEL_REGISTRY import MODEL_REGISTRY
 from RawForge.application.InferenceWorker import InferenceWorker
-from RawForge.application.InferenceWorkerRawpy import InferenceWorkerRawpy
 
 key_string = '''-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA8iRGMPqFIFVF0TM/AbMI
@@ -121,10 +120,7 @@ class ModelHandler():
         if "max_iso" in self.model_params:
             conditioning[0] = min(conditioning[0], self.model_params["max_iso"])
 
-        # if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
-        worker = InferenceWorkerRawpy(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
-        # else:
-        #     worker = InferenceWorker(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
+        worker = InferenceWorker(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
         img, final_denoised =  worker.run(self.model_params)
 
         return img, final_denoised
