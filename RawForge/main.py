@@ -17,6 +17,7 @@ def main():
     parser.add_argument('--device', type=str, help='Set device backend (cuda, cpu, mps).')
     parser.add_argument('--disable_tqdm', action='store_true', help='Disable the progress bar.')
     parser.add_argument('--tile_size', type=int, help='Set tile size. (default: 256)', default=256)
+    parser.add_argument('--tile_overlap', type=float, help='Set tile overlap. (default: 0.25)', default=0.25)
 
     parser.add_argument('--lumi', type=float, help='Lumi noise (0-1).', default=0)
     parser.add_argument('--chroma', type=float, help='Chroma noise (0-1).', default=0)
@@ -50,12 +51,13 @@ def main():
 
 
     inference_kwargs = {"disable_tqdm": args.disable_tqdm,
-                        "tile_size": args.tile_size}
+                        "tile_size": args.tile_size,
+                        "tile_overlap": args.tile_overlap}
     img, denoised_image = handler.run_inference(conditioning=conditioning, dims=args.dims, inference_kwargs=inference_kwargs)
 
     output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6,
                          clip_highlights=args.clip_highlights)
-    handler.handle_full_image(output, args.out_file, args.cfa)
+    handler.handle_full_image(output, args.out_file, args.cfa, dims=args.dims)
 
 
 if __name__ == '__main__':

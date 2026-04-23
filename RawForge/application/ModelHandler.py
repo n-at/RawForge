@@ -55,16 +55,7 @@ class ModelHandler():
         os.makedirs(cache_path, exist_ok=True)
         cache_path = '/Users/ryanmueller/Library/model_cache'
         # Manage devices
-        self.providers =  get_best_providers(cache_path)
-        cache_dir = str(cache_path)
-        # self.providers = [
-        #     ('CoreMLExecutionProvider', {
-        #         'MLComputeUnits': 'ALL',
-        #         'ModelCacheDirectory': cache_dir, # This saves the compiled .mlmodelc here
-        #     }),
-            
-        #     'CPUExecutionProvider'
-        # ]
+        self.providers = ort.get_available_providers()
         self.filename = None
         self.start_time = None
         self.model_params = {}
@@ -130,11 +121,11 @@ class ModelHandler():
         if "max_iso" in self.model_params:
             conditioning[0] = min(conditioning[0], self.model_params["max_iso"])
 
-        if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
-            worker = InferenceWorkerRawpy(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
-        else:
-            worker = InferenceWorker(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
-        img, final_denoised =  worker.run()
+        # if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
+        worker = InferenceWorkerRawpy(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
+        # else:
+        #     worker = InferenceWorker(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
+        img, final_denoised =  worker.run(self.model_params)
 
         return img, final_denoised
 
@@ -193,10 +184,11 @@ class ModelHandler():
             return False
         
 
-    def handle_full_image(self, denoised, filename, save_cfa):
+    def handle_full_image(self, denoised, filename, save_cfa, dims=None):
         # Compute CFA
         if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
-            _, mask = self.rh.compute_mask_and_sparse(dims=(0, 99999, 0, 99999))
+            
+            _, mask = self.rh.compute_mask_and_sparse(dims=dims)
             denoised = denoised.transpose(2, 0, 1)
             denoised = denoised.clip(0, 1)
 

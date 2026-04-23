@@ -1,4 +1,64 @@
 MODEL_REGISTRY = {
+"TreeNetDenoise": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/ShadowWeightedL1.onnx",
+        "filename": "ShadowWeightedL1.onnx",
+        "max_iso": 65535,
+        "backend": "Malvar2004",
+    },
+    "TreeNetDenoiseLight": {
+        "url": "    https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/ShadowWeightedL1_light.onnx",
+        "filename": "ShadowWeightedL1_light.onnx",
+        "max_iso": 65535,
+        "backend": "Malvar2004",
+    },
+    "TreeNetDenoiseSuperLight": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/ShadowWeightedL1_super_light.onnx",
+        "filename": "ShadowWeightedL1_super_light.onnx",
+        "max_iso": 65535,
+        "backend": "Malvar2004",
+    },
+    "TreeNetDenoiseHeavy": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/ShadowWeightedL1_24_deep_500.onnx",
+        "filename": "ShadowWeightedL1_24_deep_500.onnx",
+        "max_iso": 65535,
+        "backend": "Malvar2004",
+    },
+    "Deblur": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/realblur_gamma_140.onnx",
+        "filename": "realblur_gamma_140.onnx",
+        "affine": True,
+        "backend": "Malvar2004",
+    },
+    "DeepSharpen": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/Deblur_deep_24.onnx",
+        "filename": "Deblur_deep_24.onnx",
+        "affine": True,
+        "backend": "Malvar2004",
+    },
+    "TreeNetDenoiseXTrans": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/xtrans_fixed_exposure_no_conditioning_400.onnx",
+        "filename": "xtrans_fixed_exposure_no_conditioning_400.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+        "cond_scale": 0,
+    },
+    "RestormerXTrans": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/restormer.onnx",
+        "filename": "restormer.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
+    "XFormerXTrans2": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/xformer_fp16.onnx",
+        "filename": "xformer_fp16.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+    }, 
+
     "XFormerDenoise": {
         "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/xformer_static.onnx",
         "filename": "xformer_static.onnx",
@@ -15,4 +75,63 @@ MODEL_REGISTRY = {
         "batch_size": 1, 
         "crop_size": 256,
     }, 
+
+    "NAFDenoise_dynamic": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/NAF_dynamic.onnx",
+        "filename": "NAF_dynamic.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+    }, 
+    "NAFDenoise_dynamic_fp16": {
+        "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/NAF_dynamic_fp16.onnx",
+        "filename": "NAF_dynamic_fp16.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+    }, 
+    "NAF_static_fp16": {
+        "url": "    https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/NAF_static_fp16.onnx",
+        "filename": "NAF_static_fp16.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+    }, 
+    "NAF_trace_test": {
+        "url": "    https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/xtrans_fixed_exposure_no_conditioning_400.onnx",
+        "filename": "xtrans_fixed_exposure_no_conditioning_400.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+    }, 
+    "non_trace_test": {
+        "url": "    https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/non_trace_test.onnx",
+        "filename": "non_trace_test.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+    }, 
+    "trace_test": {
+        "url": "    https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/trace_test.onnx",
+        "filename": "trace_test.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+    },   
+    "non_trace_test_opset_20_static_simp": {
+        "url": "    https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/non_trace_test_opset_20_static_simp.onnx",
+        "filename": "non_trace_test_opset_20_static_simp.onnx",
+        "backend": "rawpy",
+        "conditioning": "false",
+        "batch_size": 1, 
+        "crop_size": 256,
+    },   
+    
+    
 }
