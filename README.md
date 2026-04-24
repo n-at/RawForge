@@ -15,6 +15,42 @@ Currently in **alpha release**.
 pip install rawforge
 ```
 
+
+## New: ONNX backend!
+
+### NVIDIA: For cuda (tested, must have CUDA installed):
+
+```bash
+pip install rawforgeonnx[cuda]
+```
+
+### AMD and NVIDIA on Windows:
+
+```bash
+pip install rawforgeonnx[directml]
+```
+
+
+### All others, including M1+ Macs (CoreML)
+
+```bash
+pip install rawforgeonnx[cpu]
+```
+
+### For web:
+
+```bash
+pip install rawforgeonnx[web]
+```
+
+Useage is the same, but use the CLI "rawforgeonnx".
+
+
+```bash
+rawforgeonnx TreeNetDenoiseHeavy test.CR2 test_heavy.dng --cfa 
+```
+
+
 ---
 ## Example command line syntax:
 
