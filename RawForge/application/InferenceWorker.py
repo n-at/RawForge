@@ -3,7 +3,6 @@ import numpy as np
 from blended_tiling_numpy import TilingModule
 from RawForge.application.postprocessing import match_colors_linear
 from tqdm import tqdm
-import rawpy
 
 class InferenceWorker():
     def __init__(self, model, model_params, conditioning, tile_size=512, tile_overlap=0.25, batch_size=2, disable_tqdm=False):
