@@ -1,8 +1,10 @@
 import onnxruntime as ort
+import os
 
 def get_best_providers(cache_dir):
+    os.makedirs(cache_dir, exist_ok=True)
     available = ort.get_available_providers()
-    
+    return available
     priority = [
         "CUDAExecutionProvider",      # NVIDIA
         "ROCMExecutionProvider",      # AMD (Direct)

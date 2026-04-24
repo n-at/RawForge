@@ -3,19 +3,13 @@ import os
 import numpy as np
 from pathlib import Path
 from platformdirs import user_data_dir
-from time import perf_counter
 import requests
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from RawHandler.RawHandler import RawHandler
-from RawHandler.RawHandlerRawpy import RawHandlerRawpy
-
-from RawForge.application.dng_utils import convert_color_matrix, to_dng
-from RawForge.application.utils import get_best_providers
-
 from RawForge.application.MODEL_REGISTRY import MODEL_REGISTRY
 from RawForge.application.InferenceWorker import InferenceWorker
+from RawForge.application.helpers.utils import get_best_providers
 
 key_string = '''-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA8iRGMPqFIFVF0TM/AbMI
@@ -40,35 +34,14 @@ class ModelHandler():
     def __init__(self):
         super().__init__()
 
-        self.model = None
-        self.rh = None
-        self.iso = 100
-        self.colorspace = 'lin_rec2020'
-
+        self.model = None        
         app_name = "RawForge"
         self.data_dir = Path(user_data_dir(app_name))
-
-        #Cache compiled ONNX models
-        cache_path = Path(os.path.expanduser(f"{self.data_dir}/model_cache")).resolve()
-        print(cache_path)
-        os.makedirs(cache_path, exist_ok=True)
-        cache_path = '/Users/ryanmueller/Library/model_cache'
+        self.cache_dir = Path(os.path.expanduser(f"{self.data_dir}/model_cache")).resolve()
         # Manage devices
-        self.providers = ort.get_available_providers()
-        self.filename = None
-        self.start_time = None
-        self.model_params = {}
-
+        self.providers = get_best_providers(cache_dir=self.cache_dir)
         self.pub = serialization.load_pem_public_key(key_string.encode('utf-8'))
 
-    def load_rh(self, path):
-        """Loads the raw file handler"""
-        if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
-                    self.rh = RawHandlerRawpy(path)
-        else:
-                    self.rh = RawHandler(path)
-        self.iso = self.rh.full_metadata.get_ISO()
-        return self.iso
 
     def load_model(self, model_key):
         """Loads a model by key from the registry"""
@@ -104,33 +77,6 @@ class ModelHandler():
         except Exception as e:
             print(f"Failed to load model: {e}")
 
-    # def set_device(self, device):
-    #     self.device = torch.device(device)
-    #     if self.model:
-    #         self.model.to(self.device)
-    #     print(f"Using Device {self.device} from {device}")
-
-    def run_inference(self, conditioning, dims=None, inference_kwargs={}):
-        """Starts the worker thread"""
-        if not self.model or not self.rh:
-            print("Model or Image not loaded.")
-            return
-        
-        # Some older models were trained with a lower max iso
-        if "max_iso" in self.model_params:
-            conditioning[0] = min(conditioning[0], self.model_params["max_iso"])
-
-        worker = InferenceWorker(self.model, self.model_params, self.rh, conditioning, dims, **inference_kwargs)
-        img, final_denoised =  worker.run(self.model_params)
-
-        return img, final_denoised
-
-
-    def generate_thumbnail(self, size=400):
-        if not self.rh: return None
-        thumb = self.rh.generate_thumbnail(min_preview_size=size, clip=True)
-        return thumb
-
     def _verify_model(self, dest_path, sig_path):
         try:
             data = Path(dest_path).read_bytes()
@@ -155,7 +101,6 @@ class ModelHandler():
             print(f"Model {dest_path} not verified! Deleting.")
             return False
 
-
     def _download_file(self, url, dest_path):
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -178,32 +123,4 @@ class ModelHandler():
         except Exception as e:
             print(e)
             return False
-        
-
-    def handle_full_image(self, denoised, filename, save_cfa, dims=None):
-        # Compute CFA
-        if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
-            
-            _, mask = self.rh.compute_mask_and_sparse(dims=dims)
-            denoised = denoised.transpose(2, 0, 1)
-            denoised = denoised.clip(0, 1)
-
-            denoised = np.where(mask, denoised, 0)
-            denoised = denoised.sum(axis=0)
-            denoised = denoised * ( self.rh.core_metadata.white_level) + self.rh.core_metadata.black_level_per_channel[0]
-            self.rh.to_dng(filename, uint_img=denoised)
-        else:
-            transform_matrix = np.linalg.inv(
-                    self.rh.rgb_colorspace_transform(colorspace=self.colorspace)
-                    )
-
-            CCM = self.rh.rgb_colorspace_transform(colorspace='XYZ')
-            CCM = np.linalg.inv(CCM)
-
-            transformed = denoised @ transform_matrix.T
-            uint_img = np.clip(transformed * 2**16-1, 0, 2**16-1).astype(np.uint16)
-            ccm1 = convert_color_matrix(CCM)
-            to_dng(uint_img, self.rh, filename, ccm1, save_cfa=save_cfa, convert_to_cfa=True)
-
-
 

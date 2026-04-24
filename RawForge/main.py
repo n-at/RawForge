@@ -1,8 +1,15 @@
 import sys
 import platform
+import argparse
+from pathlib import Path
 from  RawForge.application.ModelHandler import ModelHandler 
 from RawForge.application.postprocessing import postprocess
-import argparse
+from  RawForge.application.MODEL_REGISTRY import MODEL_REGISTRY 
+from RawForge.application.InferenceWorker import InferenceWorker
+from RawForge.application.ImageSaver import ImageSaver
+from RawForge.application.helpers.get_image import get_image
+import numpy as np
+
 # import glob
 
 def main():
@@ -23,9 +30,6 @@ def main():
     parser.add_argument('--chroma', type=float, help='Chroma noise (0-1).', default=0)
     parser.add_argument('--clip_highlights', action='store_true', help='Do not run model on clipped highlights.')
     parser.add_argument('--affine', action='store_true', help='Affine fit the model to the input.')
-
-    args = parser.parse_args()
-
     # # Glob handeling
     # in_files = sorted(glob.glob(args.in_file))
     # if not in_files:
@@ -35,31 +39,39 @@ def main():
     #         raise ValueError(
     #             "When using glob input, out_file must be a directory."
     #         )
-    
-    handler = ModelHandler()
+    args = parser.parse_args()
 
-    handler.load_model(args.model)
-
-    iso = handler.load_rh(args.in_file)
-
+    # Initialize
+    models = args.model.split(',')
+    model_params = MODEL_REGISTRY[models[0]]
+    rh, image_RGB, iso = get_image(args.in_file, model_params, dims=args.dims)
     if not args.conditioning:
         conditioning  = [iso, 0]
     else: 
         conditioning = [int(x) for x in args.conditioning.split(',')]
-
-    if args.device:
-        handler.set_device(args.device)
-
-
     inference_kwargs = {"disable_tqdm": args.disable_tqdm,
                         "tile_size": args.tile_size,
                         "tile_overlap": args.tile_overlap}
-    img, denoised_image = handler.run_inference(conditioning=conditioning, dims=args.dims, inference_kwargs=inference_kwargs)
+    
+    # Run processing
+    output_img = image_RGB
+    for model in models:
+        handler = ModelHandler()
+        handler.load_model(model)
+        worker = InferenceWorker(handler.model, handler.model_params, conditioning, **inference_kwargs)
+        _, output_img = worker._tile_process(output_img, handler.model_params)
 
-    output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6,
+    # Postprocess
+    output = postprocess(image_RGB, output_img, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6,
                          clip_highlights=args.clip_highlights, affine=args.affine)
-    handler.handle_full_image(output, args.out_file, args.cfa, dims=args.dims)
-
+    
+    # Save image
+    saver = ImageSaver(model_params, rh, dims=args.dims)
+    apply_ccm = model_params['demosaicing'] == 'rawpy'
+    if Path(args.out_file).suffix=='.tiff':
+        saver.to_tiff(output, args.out_file, apply_ccm=apply_ccm)
+    else:
+        saver.to_raw(output, args.out_file, args.cfa)
 
 if __name__ == '__main__':
     main()
