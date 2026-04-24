@@ -33,6 +33,8 @@ class ImageSaver():
     def to_raw(self, denoised, filename, save_cfa):
             # Compute CFA
             if self.model_params['demosaicing'] == 'rawpy':
+                if self.dims is None:
+                    self.dims = [0, 9999999, 0, 9999999]
                 _, mask = self.rh.compute_mask_and_sparse(dims=self.dims)
                 denoised = denoised[0]
                 denoised = denoised.clip(0, 1)
