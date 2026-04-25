@@ -1,6 +1,6 @@
 [project]
 name = "rawforgeonnx" 
-version = "0.2.1"
+version = "0.2.2"
 description = "A compute backend/CLI application for using machine learning models on raw images."
 authors = [
     { name = "Ryan Mueller"},
@@ -33,7 +33,7 @@ dependencies = [
 [project.optional-dependencies]
 cpu = ["onnxruntime"]
 cuda = ["onnxruntime-gpu"]
-web = ["onnxruntime-web"]
+web = ["onnxruntime-webgpu"]
 directml = ["onnxruntime-directml"]
 
 
