@@ -131,12 +131,11 @@ def to_dng(uint_img, rh, filepath, ccm1, save_cfa=True, convert_to_cfa=True, use
     # DNG Metadata Mapping
     # Format: (code, data_type, count, value, writeonce)
     # Types: 3=short, 4=long, 5=rational, 2=ascii, 12=double
-    
+
     # NewSubfileType: 0 = Main Image
     tags.append((254, 'I', 1, 0, False))
     # DNG Version (1.4.0.0) - Type 1 (BYTE)
     tags.append((50706, 1, 4, [1, 4, 0, 0], True)) 
-    print("synthetic")
     # UniqueCameraModel (50708) - ASCII
     tags.append((50708, 2, len("Synthetic Camera"), "Synthetic Camera", True))
 
