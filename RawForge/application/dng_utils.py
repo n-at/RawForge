@@ -132,19 +132,35 @@ def to_dng(uint_img, rh, filepath, ccm1, save_cfa=True, convert_to_cfa=True, use
     # Format: (code, data_type, count, value, writeonce)
     # Types: 3=short, 4=long, 5=rational, 2=ascii, 12=double
     
+    # NewSubfileType: 0 = Main Image
+    tags.append((254, 'I', 1, 0, False))
     # DNG Version (1.4.0.0) - Type 1 (BYTE)
     tags.append((50706, 1, 4, [1, 4, 0, 0], True)) 
+    print("synthetic")
+    # UniqueCameraModel (50708) - ASCII
+    tags.append((50708, 2, len("Synthetic Camera"), "Synthetic Camera", True))
+
+    # Make (271) and Model (272)
+    tags.append((271, 2, len("Custom"), "Custom", True))
+    tags.append((272, 2, len("Synthetic Camera"), "Synthetic Camera", True))
+
+    # DNGBackwardVersion (50707)
+    tags.append((50707, 1, 4, [1, 1, 0, 0], True))
 
     # ColorMatrix1 (Tag 50721)
     # Type 10 = SRATIONAL. Count = 9 elements (each is a [num, den] pair)
     ccm1_flat = np.array(ccm1).flatten().tolist()
     tags.append((50721, 10, 9, ccm1_flat, True))
-
+    # ForwardMatrix1 (50764) (can reuse CCM as approximation)
+    tags.append((50764, 10, 9, ccm1_flat, True))
     # AsShotNeutral (Tag 50728)
     # Type 5 = RATIONAL. Count = 3 elements
     wb = get_as_shot_neutral(rh)
     wb_flat = np.array(wb).flatten().tolist()
     tags.append((50728, 5, 3, wb_flat, True))
+
+    # CalibrationIlluminant1 (50778)
+    tags.append((50778, 3, 1, 21, True))  # 21 = D65
 
     # BlackLevel (Tag 50714)
     # RATIONAL (5), count is 4 for Bayer
@@ -168,6 +184,15 @@ def to_dng(uint_img, rh, filepath, ccm1, save_cfa=True, convert_to_cfa=True, use
         # CFAPattern: [0, 1, 1, 2] for RGGB -> Type 1 (BYTE)
         # 0=Red, 1=Green, 2=Blue
         tags.append((33422, 1, 4, [0, 1, 1, 2], True))
+
+        # CFAPlaneColor (50710): which channel index corresponds to which color
+        tags.append((50710, 1, 3, [0, 1, 2], True))  # R, G, B
+
+        # CFALayout (50711)
+        tags.append((50711, 3, 1, 1, True))  # rectangular
+
+        # BlackLevelRepeatDim (50713)
+        tags.append((50713, 3, 2, [2, 2], True))
 
     # # 3. EXIF Extraction
     # try:
