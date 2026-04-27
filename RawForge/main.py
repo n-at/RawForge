@@ -1,6 +1,6 @@
+# Check backends
 try:
     import torch
-
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -11,7 +11,12 @@ try:
 except ImportError:
     ONNX_AVAILABLE = False
 
-
+#Quiet color import warning
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message='.*Matplotlib.*not available.*'
+)
 import argparse
 from pathlib import Path
 
