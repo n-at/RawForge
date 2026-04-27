@@ -65,10 +65,7 @@ def postprocess(img, denoised, lumi_blend=0, chroma_blend=0, eps=1e-6,
                 clip_highlights=False, affine=False):
     
     if affine:
-        _denoised = np.expand_dims(denoised.transpose(2, 0, 1), axis=0)
-        _img = np.expand_dims(img.transpose(2, 0, 1), axis=0)
-        _denoised, _, _ = match_colors_linear(_denoised, _img)
-        denoised = _denoised[0].transpose(1, 2, 0)
+        denoised, _, _ = match_colors_linear(denoised, img)
 
     dot = (img * denoised).sum(axis=2, keepdims=True)
     denoised_mag = (denoised * denoised).sum(axis=2, keepdims=True) ** .5
