@@ -73,22 +73,23 @@ def postprocess(
     clip_highlights=False,
     affine=False,
 ):
-
     if affine:
         denoised, _, _ = match_colors_linear(denoised, img)
 
-    dot = (img * denoised).sum(axis=2, keepdims=True)
-    denoised_mag = (denoised * denoised).sum(axis=2, keepdims=True) ** 0.5
 
-    # Project denoised along original image vector
-    lumi = dot / (denoised_mag**2 + eps) * denoised
-    chroma = img - lumi
-    output = (1 - lumi_blend) * denoised + lumi * (lumi_blend) + chroma_blend * chroma
+    if lumi_blend > 0:
+        dot = (img * denoised).sum(axis=1, keepdims=True)
+        denoised_mag = (denoised * denoised).sum(axis=1, keepdims=True) ** 0.5
+        # Project denoised along original image vector
+        lumi = dot / (denoised_mag**2 + eps) * denoised
+        chroma = img - lumi
+        denoised = (1 - lumi_blend) * denoised + lumi * (lumi_blend) + chroma_blend * chroma
+    
 
     if clip_highlights:
-        output = clip_highlights_func(img, output)
+        denoised = clip_highlights_func(img, denoised)
 
-    return output
+    return denoised
 
 
 def clip_highlights_func(img, denoised):
