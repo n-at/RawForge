@@ -1,6 +1,6 @@
 [project]
 name = "rawforgeonnx" 
-version = "0.3.3"
+version = "0.3.4"
 description = "A compute backend/CLI application for using machine learning models on raw images."
 authors = [
     { name = "Ryan Mueller"},
@@ -36,7 +36,7 @@ cuda = ["onnxruntime-gpu"]
 web = ["onnxruntime-webgpu"]
 directml = ["onnxruntime-directml"]
 torch = ["torch"]
-fastapi = ["fastapi" "pydantic", "uvicorn"]
+fastapi = ["fastapi", "pydantic", "uvicorn"]
 
 [project.urls]
 "Homepage" = "https://github.com/rymuelle/RawForge"
