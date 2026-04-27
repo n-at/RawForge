@@ -1,6 +1,7 @@
 # Check backends
 try:
     import torch
+
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -11,12 +12,10 @@ try:
 except ImportError:
     ONNX_AVAILABLE = False
 
-#Quiet color import warning
+# Quiet color import warning
 import warnings
-warnings.filterwarnings(
-    "ignore",
-    message='.*Matplotlib.*not available.*'
-)
+
+warnings.filterwarnings("ignore", message=".*Matplotlib.*not available.*")
 import argparse
 from pathlib import Path
 
@@ -83,6 +82,12 @@ def main():
     parser.add_argument(
         "--device", type=str, help="Torch only: Set device backend (cuda, cpu, mps)."
     )
+    parser.add_argument(
+        "--verbose",
+        type=int,
+        help="Verbose output. 0:Silent 1:Progress bar 2:Verbose (default: 1)",
+        default=1,
+    )
 
     # # Glob handeling
     # in_files = sorted(glob.glob(args.in_file))
@@ -94,6 +99,7 @@ def main():
     #             "When using glob input, out_file must be a directory."
     #         )
     args = parser.parse_args()
+    verbose = args.verbose
     # Set Torch or ONNX runtime
     if not (ONNX_AVAILABLE or TORCH_AVAILABLE):
         print("Must have either ONNX or Torch backends installed.")
@@ -103,6 +109,8 @@ def main():
         from RawForge.application.ModelHandler import ModelHandler
 
         runtime = "ONNX"
+        if verbose > 1:
+            print("Using ONNX runtime")
     else:
         from RawForge.application.InferenceWorkerTorch import (
             InferenceWorkerTorch as InferenceWorker,
@@ -112,6 +120,8 @@ def main():
         )
 
         runtime = "Torch"
+        if verbose > 1:
+            print("Using Torch runtime")
 
     # Initialize
     models = args.model.split(",")
@@ -130,12 +140,14 @@ def main():
     # Run processing
     output_img = image_RGB
     for model in models:
-        handler = ModelHandler()
+        handler = ModelHandler(verbose=verbose)
         handler.load_model(model)
         if args.device:
             handler.set_device(args.device)
         if runtime == "Torch":
             inference_kwargs["device"] = handler.device
+        if verbose == 0:
+            inference_kwargs["disable_tqdm"] = True
         worker = InferenceWorker(
             handler.model, handler.model_params, conditioning, **inference_kwargs
         )
@@ -159,6 +171,8 @@ def main():
         saver.to_tiff(output, args.out_file, apply_ccm=apply_ccm)
     else:
         saver.to_raw(output, args.out_file, args.cfa)
+    if verbose > 0:
+        print(f"{args.out_file} saved!")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 [project]
 name = "rawforgeonnx" 
-version = "0.3.1"
+version = "0.3.2"
 description = "A compute backend/CLI application for using machine learning models on raw images."
 authors = [
     { name = "Ryan Mueller"},

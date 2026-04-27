@@ -29,9 +29,9 @@ class ModelHandlerTorch:
     Manages the LifeCycle of the Model, the RawHandler, and the Worker Thread.
     """
 
-    def __init__(self):
+    def __init__(self, verbose=1):
         super().__init__()
-
+        self.verbose = verbose
         self.model = None
         # Manage devices
         devices = {
@@ -51,7 +51,8 @@ class ModelHandlerTorch:
     def load_model(self, model_key):
         """Loads a model by key from the registry"""
         if model_key not in MODEL_REGISTRY:
-            print(f"Model {model_key} not found in registry.")
+            if self.verbose > 0:
+                print(f"Model {model_key} not found in registry.")
             return
 
         conf = MODEL_REGISTRY[model_key]
@@ -63,16 +64,20 @@ class ModelHandlerTorch:
         # Handle Download
         if not model_path.is_file():
             if conf["torchurl"]:
-                print(f"Downloading {model_key}...")
+                if self.verbose > 0:
+                    print(f"Downloading {model_key}...")
                 if not self._download_file(conf["torchurl"], model_path):
-                    print("Failed to download model.")
+                    if self.verbose > 0:
+                        print("Failed to download model.")
                     return
             else:
-                print(f"Model file not found at {model_path}")
+                if self.verbose > 0:
+                    print(f"Model file not found at {model_path}")
                 return
 
         try:
-            print(f"Loading model: {model_path}")
+            if self.verbose > 1:
+                print(f"Loading model: {model_path}")
             # Verify model before load
             self._verify_model(
                 model_path, model_path.with_suffix(f"{model_path.suffix}.sig")
@@ -87,7 +92,8 @@ class ModelHandlerTorch:
         self.device = torch.device(device)
         if self.model:
             self.model.to(self.device)
-        print(f"Using Device {self.device} from {device}")
+        if self.verbose > 1:
+            print(f"Using Device {self.device} from {device}")
 
     def _verify_model(self, dest_path, sig_path):
         try:
@@ -102,7 +108,8 @@ class ModelHandlerTorch:
                 ),
                 hashes.SHA256(),
             )
-            print(f"Model {dest_path} verified!")
+            if self.verbose > 1:
+                print(f"Model {dest_path} verified!")
             return True
         except Exception as e:
             print(e)
@@ -110,7 +117,8 @@ class ModelHandlerTorch:
                 dest_path.unlink()
             if sig_path.exists():
                 sig_path.unlink()
-            print(f"Model {dest_path} not verified! Deleting.")
+            if self.verbose > 0:
+                print(f"Model {dest_path} not verified! Deleting.")
             return False
 
     def _download_file(self, url, dest_path):
@@ -129,7 +137,6 @@ class ModelHandlerTorch:
             with open(sig_path, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-            print("test verification")
             return self._verify_model(dest_path, sig_path)
 
         except Exception as e:
