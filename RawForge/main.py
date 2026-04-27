@@ -29,7 +29,8 @@ def run_pipeline(
     use_onnx: bool = False,
     device: Optional[str] = None,
     verbose: int = 1,
-    disable_tqdm: bool = False
+    disable_tqdm: bool = False,
+    progress_callback = None
 ):    
     ModelHandler, InferenceWorker, runtime = get_backend(use_onnx, verbose)
 
@@ -64,7 +65,7 @@ def run_pipeline(
         worker = InferenceWorker(
             handler.model, handler.model_params, conditioning, **inference_kwargs
         )
-        _, output_img = worker._tile_process(output_img, handler.model_params)
+        _, output_img = worker._tile_process(output_img, handler.model_params, progress_callback=progress_callback)
 
     # Postprocess
     output = postprocess(
