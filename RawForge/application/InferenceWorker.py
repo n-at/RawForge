@@ -60,6 +60,7 @@ class InferenceWorker:
 
         processed_batches = []
 
+        total_batches = len(batches_rgb)
         # Inference Loop
         for i, (batch_rgb) in tqdm(enumerate(batches_rgb), disable=self.disable_tqdm):
             if self._is_cancelled:
