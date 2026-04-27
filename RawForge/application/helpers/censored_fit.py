@@ -1,16 +1,19 @@
 import numpy as np
 import math
 
+
 def norm_cdf(z):
     erf_vec = np.vectorize(math.erf)
     return 0.5 * (1 + erf_vec(z / np.sqrt(2)))
+
 
 def norm_pdf(z):
     return (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * z**2)
 
 
-def censored_linear_fit_twosided(x, y, clip_low=0, clip_high=1,
-                                 max_iter=200, tol=1e-6, include_offset=True):
+def censored_linear_fit_twosided(
+    x, y, clip_low=0, clip_high=1, max_iter=200, tol=1e-6, include_offset=True
+):
     """
     Fit y ≈ a + b*x + ε, ε ~ N(0, σ²) under two-sided censoring:
     clip_low ≤ y_true ≤ clip_high
@@ -43,17 +46,17 @@ def censored_linear_fit_twosided(x, y, clip_low=0, clip_high=1,
     if len(x) < 3:
         raise ValueError("Not enough data points.")
 
-    # Initial guess (ordinary least squares) 
+    # Initial guess (ordinary least squares)
     if include_offset:
         A = np.vstack([np.ones_like(x), x]).T
         a, b = np.linalg.lstsq(A, y, rcond=None)[0]
     else:
         b = np.dot(x, y) / np.dot(x, x)
         a = 0.0
-    sigma = np.std(y - (a + b*x))
+    sigma = np.std(y - (a + b * x))
 
     for _ in range(max_iter):
-        mu = a + b*x
+        mu = a + b * x
         y_exp = y.copy()
 
         # Handle right-censoring (high clip)
@@ -89,10 +92,9 @@ def censored_linear_fit_twosided(x, y, clip_low=0, clip_high=1,
             b_new = np.dot(x, y_exp) / np.dot(x, x)
             a_new = 0.0
 
-        sigma_new = np.std(y_exp - (a_new + b_new*x))
+        sigma_new = np.std(y_exp - (a_new + b_new * x))
 
-        if np.allclose([a, b, sigma], [a_new, b_new, sigma_new],
-                       rtol=tol, atol=tol):
+        if np.allclose([a, b, sigma], [a_new, b_new, sigma_new], rtol=tol, atol=tol):
             break
 
         a, b, sigma = a_new, b_new, sigma_new

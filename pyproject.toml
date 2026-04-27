@@ -1,6 +1,6 @@
 [project]
 name = "rawforgeonnx" 
-version = "0.2.3"
+version = "0.3.0"
 description = "A compute backend/CLI application for using machine learning models on raw images."
 authors = [
     { name = "Ryan Mueller"},
@@ -35,6 +35,7 @@ cpu = ["onnxruntime"]
 cuda = ["onnxruntime-gpu"]
 web = ["onnxruntime-webgpu"]
 directml = ["onnxruntime-directml"]
+torch = ["torch"]
 
 
 [project.urls]
