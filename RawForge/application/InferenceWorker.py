@@ -31,7 +31,7 @@ class InferenceWorker:
     def cancel(self):
         self._is_cancelled = True
 
-    def _tile_process(self, image_RGB, model_params):
+    def _tile_process(self, image_RGB, model_params, progress_callback=None):
         # Prepare Data
         full_size = [image_RGB.shape[2], image_RGB.shape[3]]
         tile_size = [self.tile_size, self.tile_size]
@@ -77,6 +77,8 @@ class InferenceWorker:
             output = self.model.run(["output"], filtered_inputs)
 
             processed_batches.append(output[0])
+            if progress_callback:
+                progress_callback((i + 1) / total_batches)
 
         # Rebuild
         tiles_out = np.concat(processed_batches, axis=0)
