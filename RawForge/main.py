@@ -56,7 +56,7 @@ def run_pipeline(
         handler = ModelHandler(verbose=verbose)
         handler.load_model(model_name)
         
-        if device:
+        if device and runtime == "Torch":
             handler.set_device(device)
         if runtime == "Torch":
             inference_kwargs["device"] = handler.device
