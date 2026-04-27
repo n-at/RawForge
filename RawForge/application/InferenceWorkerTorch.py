@@ -81,11 +81,10 @@ class InferenceWorkerTorch:
                     # Expand conditioning to match batch size
                     curr_cond = cond_tensor.expand(B, -1)
                     output = self.model(batch_rgb, curr_cond)
-                    processed_batches.append(output.cpu())
+                    processed_batches.append(output.cpu().numpy())
 
                     if progress_callback:
                         progress_callback((i + 1) / total_batches)
-        processed_batches = np.array(processed_batches)
         # Rebuild
         tiles_out = np.concat(processed_batches, axis=0)
         stitched = tiling_module_rgb.rebuild_with_masks(tiles_out)
