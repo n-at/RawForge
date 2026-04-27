@@ -1,14 +1,16 @@
+import torch
 import numpy as np
 from blended_tiling_numpy import TilingModule
 from tqdm import tqdm
 
 
-class InferenceWorker:
+class InferenceWorkerTorch:
     def __init__(
         self,
         model,
         model_params,
         conditioning,
+        device="cpu",
         tile_size=512,
         tile_overlap=0.25,
         batch_size=2,
@@ -19,6 +21,7 @@ class InferenceWorker:
         self.model_params = model_params
         self.conditioning = conditioning
         self.tile_size = tile_size
+        self.device = device
         if "tile_size" in model_params:
             self.tile_size = model_params["tile_size"]
         self.tile_overlap = tile_overlap
@@ -60,24 +63,26 @@ class InferenceWorker:
 
         processed_batches = []
 
+        cond_tensor = torch.from_numpy(cond_tensor).to(self.device)
+        # Determine Dtype
+        dtype_map = {"mps": torch.float16, "cuda": torch.float16, "cpu": torch.bfloat16}
+        autocast_dtype = dtype_map.get(self.device.type, torch.float32)
+        total_batches = len(batches_rgb)
         # Inference Loop
-        for i, (batch_rgb) in tqdm(enumerate(batches_rgb), disable=self.disable_tqdm):
-            if self._is_cancelled:
-                return None, None
-
-            B = batch_rgb.shape[0]
-            # Expand conditioning to match batch size
-            curr_cond = np.broadcast_to(cond_tensor, (B, cond_tensor.shape[-1])).astype(
-                np.float16
-            )
-            payload = {"input": batch_rgb, "cond": curr_cond}
-            # Filter based on inputs
-            model_inputs = {i.name for i in self.model.get_inputs()}
-            filtered_inputs = {k: v for k, v in payload.items() if k in model_inputs}
-            output = self.model.run(["output"], filtered_inputs)
-
-            processed_batches.append(output[0])
-
+        with torch.no_grad():
+            with torch.autocast(device_type=self.device.type, dtype=autocast_dtype):
+                for i, (batch_rgb) in tqdm(
+                    enumerate(batches_rgb), disable=self.disable_tqdm
+                ):
+                    if self._is_cancelled:
+                        return None, None
+                    batch_rgb = torch.from_numpy(batch_rgb).to(self.device)
+                    B = batch_rgb.shape[0]
+                    # Expand conditioning to match batch size
+                    curr_cond = cond_tensor.expand(B, -1)
+                    output = self.model(batch_rgb, curr_cond)
+                    processed_batches.append(output.cpu())
+        processed_batches = np.array(processed_batches)
         # Rebuild
         tiles_out = np.concat(processed_batches, axis=0)
         stitched = tiling_module_rgb.rebuild_with_masks(tiles_out)

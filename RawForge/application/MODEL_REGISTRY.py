@@ -1,5 +1,5 @@
 MODEL_REGISTRY = {
-"TreeNetDenoise": {
+    "TreeNetDenoise": {
         "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/ShadowWeightedL1.onnx",
         "filename": "ShadowWeightedL1.onnx",
         "torchurl": "https://github.com/rymuelle/RawRefinery/releases/download/v1.2.1-alpha/ShadowWeightedL1.pt",
@@ -52,7 +52,7 @@ MODEL_REGISTRY = {
         "torchfilename": "xtrans_fixed_exposure_no_conditioning_400.pt",
         "demosaicing": "rawpy",
         "conditioning": "false",
-        "batch_size": 1, 
+        "batch_size": 1,
         "crop_size": 256,
         "cond_scale": 0,
     },
@@ -63,16 +63,15 @@ MODEL_REGISTRY = {
         "torchfilename": "restormer.pt",
         "demosaicing": "rawpy",
         "conditioning": "false",
-        "batch_size": 1, 
-    }, 
+        "batch_size": 1,
+    },
     "XFormerXTrans2": {
         "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/xformer_fp16.onnx",
         "filename": "xformer_fp16.onnx",
         "demosaicing": "rawpy",
         "conditioning": "false",
-        "batch_size": 1, 
-    }, 
-
+        "batch_size": 1,
+    },
     "XFormerDenoise": {
         "url": "https://github.com/rymuelle/RawForge/releases/download/onnx_v1.0.0/xformer_static.onnx",
         "filename": "xformer_static.onnx",
@@ -80,8 +79,7 @@ MODEL_REGISTRY = {
         "torchfilename": "xformer.pt",
         "demosaicing": "rawpy",
         "conditioning": "false",
-        "batch_size": 1, 
+        "batch_size": 1,
         "crop_size": 256,
     },
-    
 }
