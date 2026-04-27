@@ -1,30 +1,89 @@
-# Check backends
-try:
-    import torch
-
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
-try:
-    import onnxruntime
-
-    ONNX_AVAILABLE = True
-except ImportError:
-    ONNX_AVAILABLE = False
-
 # Quiet color import warning
 import warnings
 
 warnings.filterwarnings("ignore", message=".*Matplotlib.*not available.*")
 import argparse
 from pathlib import Path
+from typing import Optional, List
 
 from RawForge.application.postprocessing import postprocess
 from RawForge.application.MODEL_REGISTRY import MODEL_REGISTRY
 from RawForge.application.ImageSaver import ImageSaver
 from RawForge.application.helpers.get_image import get_image
-
+from RawForge.application.helpers.get_backend import get_backend
 # import glob
+
+def run_pipeline(
+    model_names: str,
+    in_file: str,
+    out_file: str,
+    conditioning_str: Optional[str] = None,
+    dims: Optional[List[int]] = None,
+    cfa: bool = False,
+    tile_size: int = 256,
+    tile_overlap: float = 0.25,
+    lumi: float = 0.0,
+    chroma: float = 0.0,
+    clip_highlights: bool = False,
+    affine: bool = False,
+    use_onnx: bool = False,
+    device: Optional[str] = None,
+    verbose: int = 1,
+    disable_tqdm: bool = False
+):    
+    ModelHandler, InferenceWorker, runtime = get_backend(use_onnx, verbose)
+
+    # Initialization
+    models = model_names.split(",")
+    primary_model_params = MODEL_REGISTRY[models[0]]
+
+    rh, image_RGB, iso = get_image(in_file, primary_model_params, dims=dims)
+    # Formatting conditioning
+    if not conditioning_str:
+        conditioning = [iso, 0]
+    else:
+        conditioning = [int(x) for x in conditioning_str.split(",")]
+
+    inference_kwargs = {
+        "disable_tqdm": disable_tqdm or (verbose == 0),
+        "tile_size": tile_size,
+        "tile_overlap": tile_overlap,
+    }
+
+    # Processing Loop
+    output_img = image_RGB
+    for model_name in models:
+        handler = ModelHandler(verbose=verbose)
+        handler.load_model(model_name)
+        
+        if device:
+            handler.set_device(device)
+        if runtime == "Torch":
+            inference_kwargs["device"] = handler.device
+            
+        worker = InferenceWorker(
+            handler.model, handler.model_params, conditioning, **inference_kwargs
+        )
+        _, output_img = worker._tile_process(output_img, handler.model_params)
+
+    # Postprocess
+    output = postprocess(
+        image_RGB, output_img,
+        lumi_blend=lumi, chroma_blend=chroma,
+        eps=1e-6, clip_highlights=clip_highlights, affine=affine,
+    )
+
+    # Save
+    saver = ImageSaver(primary_model_params, rh, dims=dims)
+    apply_ccm = primary_model_params["demosaicing"] == "rawpy"
+    
+    if Path(out_file).suffix == ".tiff":
+        saver.to_tiff(output, out_file, apply_ccm=apply_ccm)
+    else:
+        saver.to_raw(output, out_file, cfa)
+        
+    if verbose > 0:
+        print(f"{out_file} saved!")
 
 
 def main():
@@ -88,92 +147,25 @@ def main():
         help="Verbose output. 0:Silent 1:Progress bar 2:Verbose (default: 1)",
         default=1,
     )
-
-    # # Glob handeling
-    # in_files = sorted(glob.glob(args.in_file))
-    # if not in_files:
-    #     raise FileNotFoundError(f"No files match pattern: {args.in_file}")
-    # if len(in_files) > 1:
-    #     if not args.out_path.is_dir():
-    #         raise ValueError(
-    #             "When using glob input, out_file must be a directory."
-    #         )
     args = parser.parse_args()
-    verbose = args.verbose
-    # Set Torch or ONNX runtime
-    if not (ONNX_AVAILABLE or TORCH_AVAILABLE):
-        print("Must have either ONNX or Torch backends installed.")
-        return
-    elif (ONNX_AVAILABLE and not TORCH_AVAILABLE) or args.onnx:
-        from RawForge.application.InferenceWorker import InferenceWorker
-        from RawForge.application.ModelHandler import ModelHandler
-
-        runtime = "ONNX"
-        if verbose > 1:
-            print("Using ONNX runtime")
-    else:
-        from RawForge.application.InferenceWorkerTorch import (
-            InferenceWorkerTorch as InferenceWorker,
-        )
-        from RawForge.application.ModelHandlerTorch import (
-            ModelHandlerTorch as ModelHandler,
-        )
-
-        runtime = "Torch"
-        if verbose > 1:
-            print("Using Torch runtime")
-
-    # Initialize
-    models = args.model.split(",")
-    model_params = MODEL_REGISTRY[models[0]]
-    rh, image_RGB, iso = get_image(args.in_file, model_params, dims=args.dims)
-    if not args.conditioning:
-        conditioning = [iso, 0]
-    else:
-        conditioning = [int(x) for x in args.conditioning.split(",")]
-    inference_kwargs = {
-        "disable_tqdm": args.disable_tqdm,
-        "tile_size": args.tile_size,
-        "tile_overlap": args.tile_overlap,
-    }
-
-    # Run processing
-    output_img = image_RGB
-    for model in models:
-        handler = ModelHandler(verbose=verbose)
-        handler.load_model(model)
-        if args.device:
-            handler.set_device(args.device)
-        if runtime == "Torch":
-            inference_kwargs["device"] = handler.device
-        if verbose == 0:
-            inference_kwargs["disable_tqdm"] = True
-        worker = InferenceWorker(
-            handler.model, handler.model_params, conditioning, **inference_kwargs
-        )
-        _, output_img = worker._tile_process(output_img, handler.model_params)
-
-    # Postprocess
-    output = postprocess(
-        image_RGB,
-        output_img,
-        lumi_blend=args.lumi,
-        chroma_blend=args.chroma,
-        eps=1e-6,
+    run_pipeline(
+        model_names=args.model,
+        in_file=args.in_file,
+        out_file=args.out_file,
+        conditioning_str=args.conditioning,
+        dims=args.dims,
+        cfa=args.cfa,
+        tile_size=args.tile_size,
+        tile_overlap=args.tile_overlap,
+        lumi=args.lumi,
+        chroma=args.chroma,
         clip_highlights=args.clip_highlights,
         affine=args.affine,
+        use_onnx=args.onnx,
+        device=args.device,
+        verbose=args.verbose,
+        disable_tqdm=args.disable_tqdm
     )
-
-    # Save image
-    saver = ImageSaver(model_params, rh, dims=args.dims)
-    apply_ccm = model_params["demosaicing"] == "rawpy"
-    if Path(args.out_file).suffix == ".tiff":
-        saver.to_tiff(output, args.out_file, apply_ccm=apply_ccm)
-    else:
-        saver.to_raw(output, args.out_file, args.cfa)
-    if verbose > 0:
-        print(f"{args.out_file} saved!")
-
 
 if __name__ == "__main__":
     main()
