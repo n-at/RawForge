@@ -197,7 +197,7 @@ class ModelHandler():
             return False
         
 
-    def handle_full_image(self, denoised, filename, save_cfa):
+    def handle_full_image(self, denoised, filename, save_cfa, tags):
         # Compute CFA
         if 'backend' in self.model_params and self.model_params['backend'] == 'rawpy':
             _, mask = self.rh.compute_mask_and_sparse(dims=(0, 99999, 0, 99999))
@@ -219,7 +219,7 @@ class ModelHandler():
             transformed = denoised @ transform_matrix.T
             uint_img = np.clip(transformed * 2**16-1, 0, 2**16-1).astype(np.uint16)
             ccm1 = convert_color_matrix(CCM)
-            to_dng(uint_img, self.rh, filename, ccm1, save_cfa=save_cfa, convert_to_cfa=True)
+            to_dng(uint_img, self.rh, filename, ccm1, save_cfa=save_cfa, convert_to_cfa=True, extra_tags=tags)
 
 
 

@@ -2,14 +2,15 @@ import sys
 import platform
 from  RawForge.application.ModelHandler import ModelHandler 
 from RawForge.application.postprocessing import postprocess
+from RawForge.application.dng_utils import get_tags
 import argparse
 # import glob
 
 def main():
     parser = argparse.ArgumentParser(description='A command line utility for processing raw images.')
     parser.add_argument('--model', type=str, help='The name of the model to use.')
-    parser.add_argument('--in', type=str, help='The name of the file to open.')
-    parser.add_argument('--out', type=str, help='The name of the file to save.')
+    parser.add_argument('--in_file', type=str, help='The name of the file to open.')
+    parser.add_argument('--out_file', type=str, help='The name of the file to save.')
     parser.add_argument('--conditioning', type=str, help='Conditioning array to feed model. Input string of numbers like so: 1,2,3')
     parser.add_argument('--dims', type=int, nargs=4, metavar=("x0", "x1", "y0", "y1"), help='Optional crop dimensions.')
 
@@ -54,6 +55,7 @@ def main():
     if args.device:
         handler.set_device(args.device)
 
+    tags = get_tags(args.in_file)
 
     inference_kwargs = {"disable_tqdm": args.disable_tqdm,
                         "tile_size": args.tile_size}
@@ -61,7 +63,8 @@ def main():
 
     output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6,
                          clip_highlights=args.clip_highlights)
-    handler.handle_full_image(output, args.out_file, args.cfa)
+    
+    handler.handle_full_image(output, args.out_file, args.cfa, tags)
 
 
 if __name__ == '__main__':

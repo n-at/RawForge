@@ -1,4 +1,5 @@
 *.DNG
+*.dng
 *.CR2
 *.xmp
 *.pyc
@@ -7,6 +8,7 @@
 *.zip
 *.pkg
 *_private_key.pem
+*.xml
 
 *egg-info/*
 .DS_Store
