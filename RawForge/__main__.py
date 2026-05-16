@@ -7,9 +7,9 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser(description='A command line utility for processing raw images.')
-    parser.add_argument('model', type=str, help='The name of the model to use.')
-    parser.add_argument('in_file', type=str, help='The name of the file to open.')
-    parser.add_argument('out_file', type=str, help='The name of the file to save.')
+    parser.add_argument('--model', type=str, help='The name of the model to use.')
+    parser.add_argument('--in', type=str, help='The name of the file to open.')
+    parser.add_argument('--out', type=str, help='The name of the file to save.')
     parser.add_argument('--conditioning', type=str, help='Conditioning array to feed model. Input string of numbers like so: 1,2,3')
     parser.add_argument('--dims', type=int, nargs=4, metavar=("x0", "x1", "y0", "y1"), help='Optional crop dimensions.')
 
@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--lumi', type=float, help='Lumi noise (0-1).', default=0)
     parser.add_argument('--chroma', type=float, help='Chroma noise (0-1).', default=0)
     parser.add_argument('--clip_highlights', action='store_true', help='Do not run model on clipped highlights.')
+
+    parser.add_argument('--download_models', action='store_true', help='Download all available models')
 
     args = parser.parse_args()
 
@@ -35,6 +37,10 @@ def main():
     #         )
     
     handler = ModelHandler()
+
+    if args.download_models:
+        handler.download_all_models()
+        return
 
     handler.load_model(args.model)
 

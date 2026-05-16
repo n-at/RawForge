@@ -77,9 +77,8 @@ class ModelHandler():
 
         conf = MODEL_REGISTRY[model_key]
         self.model_params = conf
-        app_name = "RawForge"
-        data_dir = Path(user_data_dir(app_name))
-        model_path = data_dir / conf["filename"]
+    
+        model_path = self.model_path(conf["filename"])
 
         # Handle Download
         if not model_path.is_file():
@@ -101,6 +100,23 @@ class ModelHandler():
             self.model = loaded.eval().to(self.device)
         except Exception as e:
             print(f"Failed to load model: {e}")
+
+    def model_path(self, filename):
+        return Path('models') / filename
+
+    def download_all_models(self):
+        for model_key in MODEL_REGISTRY:
+            print(f"Downloading {model_key}...")
+            conf = MODEL_REGISTRY[model_key]
+            model_path = self.model_path(conf['filename'])
+            if not model_path.is_file():
+                if conf['url']:
+                    if self._download_file(conf["url"], model_path):
+                        print("Model downloaded")
+                    else:   
+                        print("Failed to download model")
+            else:
+                print("Model exists")            
 
     def set_device(self, device):
         self.device = torch.device(device)
