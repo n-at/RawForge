@@ -1,0 +1,9 @@
+numpy >=2.2
+RawHandler ~=0.2.0
+colour_demosaicing ~=0.2.6
+blended_tiling >=0.0.1.dev7
+requests ~=2.32
+platformdirs ~=4.5
+tqdm ~=4.67
+cryptography >=46.0
+tifffile
