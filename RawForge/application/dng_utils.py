@@ -6,6 +6,7 @@ def get_ratios(string, rh):
 
 
 def get_as_shot_neutral(rh, denominator=10000):
+
     cam_mul = rh.core_metadata.camera_white_balance
     
     if cam_mul[0] == 0 or cam_mul[2] == 0:
@@ -20,14 +21,16 @@ def get_as_shot_neutral(rh, denominator=10000):
         [int(g_neutral * denominator), denominator],
         [int(b_neutral * denominator), denominator],
     ]
-
 def convert_ccm_to_rational(matrix_3x3, denominator=10000):
+
     numerator_matrix = np.round(matrix_3x3 * denominator).astype(int)
     numerators_flat = numerator_matrix.flatten()
     ccm_rational = [[num, denominator] for num in numerators_flat]
     
     return ccm_rational
 
+
+   
 def simulate_CFA(image, pattern="RGGB", cfa_type="bayer"):
     """
     Simulate a CFA image from an RGB image.
@@ -91,9 +94,8 @@ def get_tags(filename):
     image = tifffile.TiffFile(filename)
     tags = []
     for tag in image.pages[0].tags:
-        # if tag.dtype == 2 and not isinstance(tag.value, str) and not isinstance(tag.value, bytes):
-            # continue
-        tags.append((tag.code, tag.dtype, tag.count, tag.value, True))
+        if tag.code in (34665, 271, 272, 305, 306):
+            tags.append((tag.code, tag.dtype, tag.count, tag.value, True))
     return tags
 
 def to_dng(uint_img, rh, filepath, ccm1, save_cfa=True, convert_to_cfa=True, use_orig_wb_points=False, extra_tags=[]):

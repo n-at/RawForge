@@ -9,7 +9,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 #download models
-python -m RawForge --download_models
+python -m RawForge.main --download_models
 ```
 
 Models available:
