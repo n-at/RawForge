@@ -98,7 +98,7 @@ def get_tags(filename):
             tags.append((tag.code, tag.dtype, tag.count, tag.value, True))
     return tags
 
-def to_dng(uint_img, rh, filepath, ccm1, save_cfa=True, convert_to_cfa=True, use_orig_wb_points=False, extra_tags=[]):
+def to_dng(uint_img, rh, filepath, ccm1, save_cfa=True, convert_to_cfa=True, use_orig_wb_points=False):
     """
     Saves image as a DNG-compatible TIFF.
     Works on Windows using tifffile.
@@ -122,10 +122,6 @@ def to_dng(uint_img, rh, filepath, ccm1, save_cfa=True, convert_to_cfa=True, use
     # 2. Define DNG/TIFF Tags
     # Tag IDs based on Adobe DNG Specification
     tags = []
-
-    for extra_tag in extra_tags:
-        if extra_tag[0] not in (50706, 50721, 50728, 50714, 50717, 33421, 33422):
-            tags.append(extra_tag)
 
     # Basic Geometry
     height, width = data.shape[:2]

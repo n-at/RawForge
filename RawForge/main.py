@@ -1,10 +1,11 @@
+import os
 import sys
 import platform
 from  RawForge.application.ModelHandler import ModelHandler 
 from RawForge.application.postprocessing import postprocess
 from RawForge.application.dng_utils import get_tags
+from PIL import Image
 import argparse
-# import glob
 
 def main():
     parser = argparse.ArgumentParser(description='A command line utility for processing raw images.')
@@ -26,16 +27,6 @@ def main():
     parser.add_argument('--download_models', action='store_true', help='Download all available models')
 
     args = parser.parse_args()
-
-    # # Glob handeling
-    # in_files = sorted(glob.glob(args.in_file))
-    # if not in_files:
-    #     raise FileNotFoundError(f"No files match pattern: {args.in_file}")
-    # if len(in_files) > 1:
-    #     if not args.out_path.is_dir():
-    #         raise ValueError(
-    #             "When using glob input, out_file must be a directory."
-    #         )
     
     handler = ModelHandler()
 
@@ -43,9 +34,61 @@ def main():
         handler.download_all_models()
         return
 
+    if not args.model:
+        print('--model required')
+        return
+
     handler.load_model(args.model)
 
-    iso = handler.load_rh(args.in_file)
+    if not args.in_file:
+        print('--in_file required')
+        return
+
+    if not args.out_file:
+        print('--out_file required')
+        return
+
+    original_input_file = args.in_file
+    original_output_file = args.out_file
+    
+    tiff_input_file = ''
+    tiff_output_file = ''
+
+    delete_tiff_input_file = False
+    delete_tiff_output_file = False
+    
+    input_file_exif = []
+
+    extension_input_file = original_input_file.split('.')[-1].upper()
+    extension_output_file = original_output_file.split('.')[-1].upper()
+    
+    if extension_input_file == 'JPG' or extension_input_file == 'JPEG' or extension_input_file == 'PNG':
+        tiff_input_file = original_input_file + '_tmp_input_tiff'
+        delete_tiff_input_file = True
+        
+        img = Image.open(original_input_file)
+        img.convert('RGB').save(tiff_input_file, format='TIFF')
+
+        input_file_exif = img.info.get('exif', None)
+    elif extension_input_file == 'TIF' or extension_input_file == 'TIFF' or extension_input_file == 'DNG':
+        tiff_input_file = original_input_file
+        delete_tiff_input_file = False
+        input_file_exif = get_tags(tiff_input_file)
+    else:
+        print('Input file format not supported')
+        return
+
+    if extension_output_file == 'JPG' or extension_output_file == 'JPEG' or extension_output_file == 'PNG':
+        tiff_output_file = original_output_file + '_tmp_output_tiff'
+        delete_tiff_output_file = True
+    elif extension_output_file == 'TIF' or extension_output_file == 'TIFF' or extension_output_file == 'DNG':
+        tiff_output_file = original_output_file
+        delete_tiff_output_file = False
+    else:
+        print('Output file format not supported')
+        return
+
+    iso = handler.load_rh(tiff_input_file)
 
     if not args.conditioning:
         conditioning  = [iso, 0]
@@ -55,17 +98,23 @@ def main():
     if args.device:
         handler.set_device(args.device)
 
-    tags = get_tags(args.in_file)
-
-    inference_kwargs = {"disable_tqdm": args.disable_tqdm,
-                        "tile_size": args.tile_size}
+    inference_kwargs = {
+        "disable_tqdm": args.disable_tqdm,
+        "tile_size": args.tile_size,
+    }
     img, denoised_image = handler.run_inference(conditioning=conditioning, dims=args.dims, inference_kwargs=inference_kwargs)
+    output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6, clip_highlights=args.clip_highlights)
+    handler.handle_full_image(output, tiff_output_file, args.cfa)
 
-    output = postprocess(img, denoised_image, lumi_blend=args.lumi, chroma_blend=args.chroma, eps=1e-6,
-                         clip_highlights=args.clip_highlights)
+    if extension_output_file == 'JPG' or extension_output_file == 'JPEG' or extension_output_file == 'PNG':
+        img = Image.open(tiff_output_file)
+        img.convert('RGB').save(original_output_file, exif=input_file_exif)
+
+    if delete_tiff_input_file:
+        os.remove(tiff_input_file)
     
-    handler.handle_full_image(output, args.out_file, args.cfa, tags)
-
+    if delete_tiff_output_file:
+        os.remove(tiff_output_file)
 
 if __name__ == '__main__':
     main()
