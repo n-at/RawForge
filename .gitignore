@@ -9,6 +9,11 @@
 *.pkg
 *_private_key.pem
 *.xml
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
 
 *egg-info/*
 .DS_Store

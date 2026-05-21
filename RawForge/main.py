@@ -3,13 +3,14 @@ import sys
 import platform
 from  RawForge.application.ModelHandler import ModelHandler 
 from RawForge.application.postprocessing import postprocess
-from RawForge.application.dng_utils import get_tags
+import RawForge.application.convert as convert
+import RawForge.application.exif as exif
 from PIL import Image
 import argparse
 
 def main():
     parser = argparse.ArgumentParser(description='A command line utility for processing raw images.')
-    parser.add_argument('--model', type=str, help='The name of the model to use.')
+    parser.add_argument('--model', type=str, help='The name of the model to use.', default='TreeNetDenoise')
     parser.add_argument('--in_file', type=str, help='The name of the file to open.')
     parser.add_argument('--out_file', type=str, help='The name of the file to save.')
     parser.add_argument('--conditioning', type=str, help='Conditioning array to feed model. Input string of numbers like so: 1,2,3')
@@ -57,29 +58,24 @@ def main():
     delete_tiff_input_file = False
     delete_tiff_output_file = False
     
-    input_file_exif = []
-
-    extension_input_file = original_input_file.split('.')[-1].upper()
-    extension_output_file = original_output_file.split('.')[-1].upper()
+    extension_input_file = convert.get_extension(original_input_file)
+    extension_output_file = convert.get_extension(original_output_file)
     
     if extension_input_file == 'JPG' or extension_input_file == 'JPEG' or extension_input_file == 'PNG':
-        tiff_input_file = original_input_file + '_tmp_input_tiff'
+        tiff_input_file = original_input_file + '_tmp_input.tif'
         delete_tiff_input_file = True
-        
-        img = Image.open(original_input_file)
-        img.convert('RGB').save(tiff_input_file, format='TIFF')
-
-        input_file_exif = img.info.get('exif', None)
+        if not convert.convert_image(original_input_file, tiff_input_file):
+            print('unable to convert input file')
+            return
     elif extension_input_file == 'TIF' or extension_input_file == 'TIFF' or extension_input_file == 'DNG':
         tiff_input_file = original_input_file
         delete_tiff_input_file = False
-        input_file_exif = get_tags(tiff_input_file)
     else:
         print('Input file format not supported')
         return
 
     if extension_output_file == 'JPG' or extension_output_file == 'JPEG' or extension_output_file == 'PNG':
-        tiff_output_file = original_output_file + '_tmp_output_tiff'
+        tiff_output_file = original_output_file + '_tmp_output.tif'
         delete_tiff_output_file = True
     elif extension_output_file == 'TIF' or extension_output_file == 'TIFF' or extension_output_file == 'DNG':
         tiff_output_file = original_output_file
@@ -107,14 +103,16 @@ def main():
     handler.handle_full_image(output, tiff_output_file, args.cfa)
 
     if extension_output_file == 'JPG' or extension_output_file == 'JPEG' or extension_output_file == 'PNG':
-        img = Image.open(tiff_output_file)
-        img.convert('RGB').save(original_output_file, exif=input_file_exif)
+        if not convert.convert_image(tiff_output_file, original_output_file):
+            print('unable to convert output file')
 
     if delete_tiff_input_file:
         os.remove(tiff_input_file)
     
     if delete_tiff_output_file:
         os.remove(tiff_output_file)
+
+    #TODO copy EXIF
 
 if __name__ == '__main__':
     main()
