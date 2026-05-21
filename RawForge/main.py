@@ -1,7 +1,6 @@
 import os
 from  RawForge.application.ModelHandler import ModelHandler 
 from RawForge.application.postprocessing import postprocess
-import RawForge.application.convert as convert
 import argparse
 
 def main():
