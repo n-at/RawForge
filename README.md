@@ -1,15 +1,19 @@
-# RawForge
+# denoiser
 
 Fork of [rymuelle/RawForge](https://github.com/rymuelle/RawForge)
 
 ```bash
 #install
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+./init.sh
 
-#download models
-python -m RawForge.main --download_models
+#run (denoise all *.dng in input)
+./denoise.sh
+
+#run (denoise and convert all *.dng in input), requires imagemagick
+convert=png ./denoise.sh
+
+#run (extra args)
+convert=tif ./denoise.sh --model TreeNetDenoiseHeavy
 ```
 
 Models available:
